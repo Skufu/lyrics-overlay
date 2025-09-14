@@ -341,10 +341,10 @@ func (a *App) UpdateOverlayConfig(config map[string]interface{}) error {
 
 // GetOverlayConfig returns current overlay configuration
 func (a *App) GetOverlayConfig() config.OverlayConfig {
-    if a.overlay == nil {
-        return config.OverlayConfig{}
-    }
-    return a.overlay.GetOverlayConfig()
+	if a.overlay == nil {
+		return config.OverlayConfig{}
+	}
+	return a.overlay.GetOverlayConfig()
 }
 
 // GetActiveWindow returns the title of the currently active window
@@ -392,6 +392,14 @@ func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 
+	// Preload config to determine startup options (e.g., disable resize)
+	preConfig, _ := config.New()
+	disableResizeAtStartup := false
+	if preConfig != nil {
+		cfg := preConfig.Get()
+		disableResizeAtStartup = cfg.Overlay.ResizeLocked
+	}
+
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
@@ -403,9 +411,11 @@ func main() {
 		Frameless:        true,
 		AlwaysOnTop:      true,
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0}, // Transparent
+		DisableResize:    disableResizeAtStartup,
 		Windows: &wailswindows.Options{
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  true,
+			DisableFramelessWindowDecorations: true,
 		},
 		OnStartup:        app.OnStartup,
 		OnShutdown:       app.OnShutdown,

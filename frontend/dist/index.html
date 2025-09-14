@@ -613,7 +613,7 @@
             if (isLocked) return;
             if (e.target.closest('.settings-panel') || e.target.closest('.settings-toggle')) return; // don't start drag from settings UI
             // Avoid starting drag from a thin resize gutter area near edges
-            const edgeMargin = 8;
+            const edgeMargin = resizeLocked ? 0 : 8;
             const rect = document.getElementById('overlayContainer').getBoundingClientRect();
             if (
                 e.clientX - rect.left < edgeMargin ||
@@ -621,7 +621,7 @@
                 e.clientY - rect.top < edgeMargin ||
                 rect.bottom - e.clientY < edgeMargin
             ) {
-                return; // allow native resize without starting drag
+                return; // allow native resize gutter when unlocked
             }
             dragging = true;
             dragMoved = false;
