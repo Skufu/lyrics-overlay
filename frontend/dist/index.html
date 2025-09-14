@@ -61,10 +61,8 @@
         }
         /* Remove legacy controls in click-through context */
         .overlay-container.click-through .controls { display: none !important; }
-        .overlay-container.click-through .settings-toggle,
-        .overlay-container.click-through .settings-panel {
-            pointer-events: auto !important;
-        }
+        /* In click-through, hide the gear entirely */
+        .overlay-container.click-through .settings-toggle { display: none !important; }
 
         .lyrics-display {
             text-align: center;
@@ -121,9 +119,14 @@
             line-height: 1;
             -webkit-app-region: no-drag;
             z-index: 200;
-            transition: background 0.2s ease;
+            transition: background 0.2s ease, opacity 0.2s ease;
+            opacity: 0;
+            pointer-events: none;
         }
         .settings-toggle:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* Reveal gear only on hover/focus interaction */
+        .overlay-container:hover .settings-toggle { opacity: 1; pointer-events: auto; }
 
         /* Settings panel */
         .settings-panel {
@@ -318,6 +321,21 @@
                 if (e.target === panel || panel.contains(e.target) || e.target === toggle) return;
                 panel.classList.add('hidden');
             });
+            // Hide gear after short inactivity when not interacting
+            let hideTimer = null;
+            const hideGear = () => {
+                const gear = document.getElementById('settingsToggle');
+                if (gear) gear.style.opacity = '0';
+            };
+            const showGear = () => {
+                const gear = document.getElementById('settingsToggle');
+                if (gear) gear.style.opacity = '1';
+                if (hideTimer) clearTimeout(hideTimer);
+                hideTimer = setTimeout(hideGear, 1500);
+            };
+            container.addEventListener('mouseenter', showGear);
+            container.addEventListener('mousemove', showGear);
+            container.addEventListener('mouseleave', hideGear);
             applyClickThroughState();
             
             // Start game detection
@@ -486,6 +504,7 @@
         function applyClickThroughState() {
             const container = document.getElementById('overlayContainer');
             const ctBtn = document.getElementById('ctBtn');
+            const toggle = document.getElementById('settingsToggle');
             if (!container || !ctBtn) return;
             
             // Determine effective click-through state (manual or auto)
@@ -498,9 +517,11 @@
                 } else if (autoClickThrough && isGameActive) {
                     ctBtn.textContent = 'CT Auto';
                 }
+                if (toggle) toggle.style.opacity = '0';
             } else {
                 container.classList.remove('click-through');
                 ctBtn.textContent = 'CT';
+                // allow gear to appear via hover timers
             }
         }
 
