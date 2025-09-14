@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/zmb3/spotify/v2"
@@ -111,11 +110,8 @@ func (s *Service) pollCurrentlyPlaying() {
 		return
 	}
 
-	// Check if it's an ad or podcast (not music)
-	if playerState.CurrentlyPlayingType != "track" {
-		s.handleNonMusicContent()
-		return
-	}
+	// Note: Some library versions do not expose a content type field.
+	// If an item exists, we treat it as a track; otherwise handle as non-music/no playback.
 
 	// Extract track information
 	track := s.extractTrackInfo(playerState)
@@ -193,16 +189,8 @@ func (s *Service) handleError(err error) {
 func (s *Service) handleRateLimit(err *spotify.Error) {
 	log.Printf("Rate limited by Spotify API")
 
-	// Check for Retry-After header
-	retryAfter := 60 // Default to 60 seconds
-	if retryAfterStr := err.Response.Header.Get("Retry-After"); retryAfterStr != "" {
-		if ra, parseErr := strconv.Atoi(retryAfterStr); parseErr == nil {
-			retryAfter = ra
-		}
-	}
-
-	// Set interval to retry-after + some buffer
-	s.currentInterval = time.Duration(retryAfter+10) * time.Second
+	// Conservative backoff when Retry-After header is not available via API error type
+	s.currentInterval = 60 * time.Second
 	if s.currentInterval > s.maxInterval {
 		s.currentInterval = s.maxInterval
 	}

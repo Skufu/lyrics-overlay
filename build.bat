@@ -6,7 +6,7 @@ go get golang.org/x/oauth2@latest
 go mod tidy
 
 echo Building SpotLy Overlay...
-go build -o spotly.exe ./cmd/spotly
+go build -o spotly.exe .
 
 if %ERRORLEVEL% EQU 0 (
     echo Build successful! Run spotly.exe to start the app.
