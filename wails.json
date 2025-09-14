@@ -1,0 +1,18 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "SpotLy Overlay",
+  "outputfilename": "spotly",
+  "frontend:install": "",
+  "frontend:build": "",
+  "author": {
+    "name": "SpotLy",
+    "email": "spotly@example.com"
+  },
+  "info": {
+    "companyName": "SpotLy",
+    "productName": "SpotLy Overlay",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright.........",
+    "comments": "Shows lyrics overlay for Spotify tracks"
+  }
+}
