@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -34,6 +35,11 @@ type App struct {
 	overlay *overlay.Service
 	spotify *spotify.Service
 	lyrics  *lyrics.Service
+
+	// Windows-specific: manage click-through state for overlay during games
+	overlayHWND      uintptr
+	clickThrough     bool
+	stopClickMonitor chan struct{}
 }
 
 // NewApp creates a new App application struct
@@ -88,10 +94,23 @@ func (a *App) OnStartup(ctx context.Context) {
 			spotifySvc.Start()
 		}
 	}
+
+	// Start background monitor to toggle click-through during games (e.g., VALORANT)
+	a.startClickThroughMonitor()
 }
 
 // OnShutdown is called when the app is shutting down
 func (a *App) OnShutdown(ctx context.Context) {
+	// Stop click-through monitor if running
+	if a.stopClickMonitor != nil {
+		select {
+		case <-a.stopClickMonitor:
+			// already closed
+		default:
+			close(a.stopClickMonitor)
+		}
+	}
+
 	if a.spotify != nil {
 		a.spotify.Stop()
 	}
@@ -386,6 +405,86 @@ func (a *App) IsOverlayFocused() bool {
 
 	// Check if the active window is our overlay (title contains "SpotLy")
 	return activeWindow == "SpotLy Overlay" || activeWindow == "SpotLy"
+}
+
+// Windows constants for extended window styles
+const (
+	_GWL_EXSTYLE       int32 = -20
+	_WS_EX_TRANSPARENT int32 = 0x00000020
+	_WS_EX_LAYERED     int32 = 0x00080000
+)
+
+// resolveOverlayHWND finds and caches the HWND of the overlay window by its title
+func (a *App) resolveOverlayHWND() {
+	if a.overlayHWND != 0 {
+		return
+	}
+
+	user32 := windows.NewLazyDLL("user32.dll")
+	procFindWindowW := user32.NewProc("FindWindowW")
+
+	title, _ := windows.UTF16PtrFromString("SpotLy Overlay")
+	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(title)))
+	if hwnd != 0 {
+		a.overlayHWND = hwnd
+	}
+}
+
+// setOverlayClickThrough toggles WS_EX_TRANSPARENT so mouse events pass through the window
+func (a *App) setOverlayClickThrough(enable bool) {
+	a.resolveOverlayHWND()
+	if a.overlayHWND == 0 {
+		return
+	}
+
+	user32 := windows.NewLazyDLL("user32.dll")
+	procGetWindowLongW := user32.NewProc("GetWindowLongW")
+	procSetWindowLongW := user32.NewProc("SetWindowLongW")
+
+	idx := _GWL_EXSTYLE
+	exStyle, _, _ := procGetWindowLongW.Call(a.overlayHWND, uintptr(idx))
+	cur := int32(exStyle)
+	newStyle := cur | _WS_EX_LAYERED
+	if enable {
+		newStyle = newStyle | _WS_EX_TRANSPARENT
+	} else {
+		newStyle = newStyle &^ _WS_EX_TRANSPARENT
+	}
+
+	procSetWindowLongW.Call(a.overlayHWND, uintptr(idx), uintptr(newStyle))
+	a.clickThrough = enable
+}
+
+// startClickThroughMonitor enables click-through when VALORANT is focused and disables otherwise
+func (a *App) startClickThroughMonitor() {
+	if a.stopClickMonitor != nil {
+		// already running
+		return
+	}
+
+	a.stopClickMonitor = make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				active, err := a.GetActiveWindow()
+				if err != nil {
+					continue
+				}
+				lower := strings.ToLower(active)
+				inValorant := strings.Contains(lower, "valorant")
+				if inValorant && !a.clickThrough {
+					a.setOverlayClickThrough(true)
+				} else if !inValorant && a.clickThrough {
+					a.setOverlayClickThrough(false)
+				}
+			case <-a.stopClickMonitor:
+				return
+			}
+		}
+	}()
 }
 
 func main() {
