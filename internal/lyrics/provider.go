@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -40,7 +41,11 @@ func New(cacheSvc *cache.Service, geniusToken string) *Service {
 		},
 	}
 
-	// Add Genius provider first if token is available
+	// Add LRCLIB provider first (often returns synced lyrics)
+	lrclibProvider := NewLRCLibProvider(service.client)
+	service.AddProvider(lrclibProvider)
+
+	// Add Genius provider next if token is available
 	if geniusToken != "" {
 		geniusProvider := NewGeniusProvider(geniusToken, service.client)
 		service.AddProvider(geniusProvider)
@@ -225,8 +230,19 @@ func (g *GeniusProvider) fetchLyricsFromPage(pageURL string) (string, error) {
 	containers := make([]*nethtml.Node, 0, 8)
 	findNodes(root, func(n *nethtml.Node) bool {
 		if n.Type == nethtml.ElementNode {
+			var hasContainer bool
+			lang := ""
 			for _, a := range n.Attr {
 				if a.Key == "data-lyrics-container" && (a.Val == "true" || a.Val == "") {
+					hasContainer = true
+				}
+				if a.Key == "data-lyrics-language" {
+					lang = strings.ToLower(a.Val)
+				}
+			}
+			if hasContainer {
+				// Prefer English or unspecified language, skip obvious translation blocks
+				if lang == "" || strings.HasPrefix(lang, "en") {
 					return true
 				}
 			}
@@ -234,14 +250,21 @@ func (g *GeniusProvider) fetchLyricsFromPage(pageURL string) (string, error) {
 		return false
 	}, &containers)
 
-	// Fallback: look for class containing "Lyrics__Container"
+	// Fallback: look for class containing "Lyrics__Container" (filter translations/footers)
 	if len(containers) == 0 {
 		findNodes(root, func(n *nethtml.Node) bool {
 			if n.Type == nethtml.ElementNode {
+				var cls string
 				for _, a := range n.Attr {
-					if a.Key == "class" && strings.Contains(a.Val, "Lyrics__Container") {
-						return true
+					if a.Key == "class" {
+						cls = a.Val
 					}
+				}
+				if strings.Contains(cls, "Lyrics__Container") &&
+					!strings.Contains(strings.ToLower(cls), "translation") &&
+					!strings.Contains(strings.ToLower(cls), "contributor") &&
+					!strings.Contains(strings.ToLower(cls), "footer") {
+					return true
 				}
 			}
 			return false
@@ -336,10 +359,7 @@ func textToLyricsLines(text string) []overlay.LyricsLine {
 		}
 		// e.g., "123Embed"
 		re := regexp.MustCompile(`^\d+\s*embed$`)
-		if re.MatchString(t) {
-			return true
-		}
-		return false
+		return re.MatchString(t)
 	}
 
 	lastWasEmpty := false
@@ -448,6 +468,247 @@ func (g *GeniusProvider) searchSong(query string) (*SongInfo, error) {
 		Artist: hit.PrimaryArtist.Name,
 		URL:    hit.URL,
 	}, nil
+}
+
+// LRCLibProvider implements lyrics fetching from LRCLIB
+type LRCLibProvider struct {
+	client  *http.Client
+	baseURL string
+}
+
+// NewLRCLibProvider creates a new LRCLIB provider
+func NewLRCLibProvider(client *http.Client) *LRCLibProvider {
+	return &LRCLibProvider{
+		client:  client,
+		baseURL: "https://lrclib.net/api",
+	}
+}
+
+// GetName returns the provider name
+func (l *LRCLibProvider) GetName() string {
+	return "LRCLIB"
+}
+
+// lrcLibTrack is the structure returned by LRCLIB
+type lrcLibTrack struct {
+	ID           int    `json:"id"`
+	TrackName    string `json:"trackName"`
+	ArtistName   string `json:"artistName"`
+	AlbumName    string `json:"albumName"`
+	Duration     int    `json:"duration"`     // seconds
+	PlainLyrics  string `json:"plainLyrics"`
+	SyncedLyrics string `json:"syncedLyrics"`
+}
+
+// SearchLyrics queries LRCLIB for lyrics
+func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData, error) {
+	// First, try direct get endpoint for an exact match
+	if track := l.tryGet(artist, title); track != nil {
+		if data := l.trackToLyricsData(track); data != nil {
+			return data, nil
+		}
+	}
+
+	// Fallback to search endpoint
+	results, err := l.search(artist, title)
+	if err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no lrclib results")
+	}
+
+	// Score and pick best match
+	best := pickBestLRCLibMatch(results, artist, title)
+	if best == nil {
+		best = &results[0]
+	}
+
+	data := l.trackToLyricsData(best)
+	if data == nil {
+		return nil, fmt.Errorf("lrclib returned empty lyrics")
+	}
+	return data, nil
+}
+
+func (l *LRCLibProvider) tryGet(artist, title string) *lrcLibTrack {
+	endpoint := fmt.Sprintf("%s/get?track_name=%s&artist_name=%s", l.baseURL, url.QueryEscape(title), url.QueryEscape(artist))
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := l.client.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+	var track lrcLibTrack
+	if err := json.Unmarshal(body, &track); err != nil {
+		return nil
+	}
+	if track.PlainLyrics == "" && track.SyncedLyrics == "" {
+		return nil
+	}
+	return &track
+}
+
+func (l *LRCLibProvider) search(artist, title string) ([]lrcLibTrack, error) {
+	endpoint := fmt.Sprintf("%s/search?track_name=%s&artist_name=%s", l.baseURL, url.QueryEscape(title), url.QueryEscape(artist))
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := l.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("lrclib search status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var results []lrcLibTrack
+	if err := json.Unmarshal(body, &results); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func pickBestLRCLibMatch(results []lrcLibTrack, artist, title string) *lrcLibTrack {
+	nArtist := normalizeString(artist)
+	nTitle := normalizeString(title)
+
+	bestIdx := -1
+	bestScore := -1
+	for i, r := range results {
+		artistMatch := normalizeString(r.ArtistName) == nArtist
+		titleMatch := normalizeString(r.TrackName) == nTitle
+		score := 0
+		if artistMatch {
+			score += 3
+		}
+		if titleMatch {
+			score += 3
+		}
+		if r.SyncedLyrics != "" {
+			score += 2
+		}
+		if r.PlainLyrics != "" {
+			score += 1
+		}
+		if score > bestScore {
+			bestScore = score
+			bestIdx = i
+		}
+	}
+	if bestIdx >= 0 {
+		return &results[bestIdx]
+	}
+	return nil
+}
+
+func (l *LRCLibProvider) trackToLyricsData(track *lrcLibTrack) *overlay.LyricsData {
+	if track == nil {
+		return nil
+	}
+	if track.SyncedLyrics != "" {
+		lines := parseLRCToLines(track.SyncedLyrics)
+		if len(lines) > 0 {
+			return &overlay.LyricsData{
+				Source:    "LRCLIB",
+				IsSynced:  true,
+				FetchedAt: time.Now(),
+				Lines:     lines,
+			}
+		}
+	}
+	if track.PlainLyrics != "" {
+		lines := textToLyricsLines(track.PlainLyrics)
+		if len(lines) > 0 {
+			return &overlay.LyricsData{
+				Source:    "LRCLIB",
+				IsSynced:  false,
+				FetchedAt: time.Now(),
+				Lines:     lines,
+			}
+		}
+	}
+	return nil
+}
+
+// parseLRCToLines parses LRC formatted lyrics into timestamped lines
+func parseLRCToLines(lrc string) []overlay.LyricsLine {
+	lines := make([]overlay.LyricsLine, 0)
+	// Timestamp pattern: [mm:ss.xx] or [mm:ss.xxx]
+	re := regexp.MustCompile(`\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]`)
+	for _, raw := range strings.Split(lrc, "\n") {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		// Skip metadata tags like [ti:], [ar:], [by:], [offset:]
+		if strings.HasPrefix(raw, "[ti:") || strings.HasPrefix(raw, "[ar:") || strings.HasPrefix(raw, "[al:") || strings.HasPrefix(raw, "[by:") || strings.HasPrefix(raw, "[offset:") {
+			continue
+		}
+		matches := re.FindAllStringSubmatchIndex(raw, -1)
+		if len(matches) == 0 {
+			continue
+		}
+		// Extract text after last timestamp tag
+		last := matches[len(matches)-1]
+		text := strings.TrimSpace(raw[last[1]:])
+		if text == "" {
+			continue
+		}
+		for _, m := range matches {
+			mm := raw[m[0]:m[1]]
+			parts := re.FindStringSubmatch(mm)
+			if len(parts) >= 3 {
+				min := atoiSafe(parts[1])
+				sec := atoiSafe(parts[2])
+				ms := 0
+				if len(parts) >= 4 && parts[3] != "" {
+					p := parts[3]
+					if len(p) == 2 { // .xx -> .xx0
+						p = p + "0"
+					}
+					if len(p) == 1 { // .x -> .x00
+						p = p + "00"
+					}
+					ms = atoiSafe(p)
+				}
+				timestamp := int64(min*60*1000 + sec*1000 + ms)
+				lines = append(lines, overlay.LyricsLine{Text: text, Timestamp: timestamp})
+			}
+		}
+	}
+	// Sort by timestamp
+	sort.Slice(lines, func(i, j int) bool { return lines[i].Timestamp < lines[j].Timestamp })
+	return lines
+}
+
+func atoiSafe(s string) int {
+	res := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < '0' || c > '9' {
+			continue
+		}
+		res = res*10 + int(c-'0')
+	}
+	return res
 }
 
 // DemoProvider provides demo lyrics for any track
