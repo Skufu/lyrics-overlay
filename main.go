@@ -394,6 +394,7 @@ func main() {
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0}, // Transparent
 		Windows: &wailswindows.Options{
 			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
 		},
 		OnStartup:        app.OnStartup,
 		OnShutdown:       app.OnShutdown,
