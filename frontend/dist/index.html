@@ -59,10 +59,10 @@
         .overlay-container.click-through {
             pointer-events: none !important;
         }
-        .overlay-container.click-through .controls {
-            /* Keep controls available even when click-through is enabled */
-            display: flex !important;
-            opacity: 1 !important;
+        /* Remove legacy controls in click-through context */
+        .overlay-container.click-through .controls { display: none !important; }
+        .overlay-container.click-through .settings-toggle,
+        .overlay-container.click-through .settings-panel {
             pointer-events: auto !important;
         }
 
@@ -102,21 +102,44 @@
             background: #44ff44;
         }
 
-        .controls {
+        /* Settings toggle (gear) */
+        .settings-toggle {
             position: absolute;
-            bottom: 10px;
-            right: 10px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            -webkit-app-region: no-drag;
+            top: 8px;
+            left: 10px;
+            width: 28px;
+            height: 28px;
             display: flex;
-            gap: 4px;
-            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            -webkit-app-region: no-drag;
+            z-index: 200;
+            transition: background 0.2s ease;
         }
+        .settings-toggle:hover { background: rgba(255, 255, 255, 0.2); }
 
-        .overlay-container:hover .controls {
-            opacity: 1;
+        /* Settings panel */
+        .settings-panel {
+            position: absolute;
+            top: 44px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 8px;
+            -webkit-app-region: no-drag;
+            z-index: 300;
+            min-width: 280px;
         }
+        .settings-panel.hidden { display: none; }
+        .settings-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
         .control-btn {
             background: rgba(255, 255, 255, 0.12);
@@ -212,16 +235,19 @@
             <div class="next-line" id="nextLine">Connecting to Spotify...</div>
         </div>
         
-        <div class="controls">
-            <button class="control-btn" onclick="toggleVisibility()">Hide</button>
-            <button class="control-btn" id="lockBtn" onclick="toggleLock()">Lock</button>
-            <button class="control-btn" id="bgBtn" onclick="toggleBackground()" title="Toggle background opacity">BG</button>
-            <button class="control-btn" id="ctBtn" onclick="toggleClickThrough()" title="Manual click-through">CT</button>
-            <button class="control-btn" id="autoCtBtn" onclick="toggleAutoClickThrough()" title="Auto click-through for games">Auto</button>
-            <button class="control-btn" onclick="adjustOpacity()">Opacity</button>
-            <button class="control-btn" onclick="adjustFontSize()">Font</button>
-            <button class="control-btn" onclick="refreshNow()">Refresh</button>
-            <button class="control-btn" onclick="showDebugInfo()">Debug</button>
+        <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Settings">⚙</button>
+        <div class="settings-panel hidden" id="settingsPanel">
+            <div class="settings-row">
+                <button class="control-btn" id="visBtn" onclick="toggleVisibility()">Hide</button>
+                <button class="control-btn" id="lockBtn" onclick="toggleLock()">Lock</button>
+                <button class="control-btn" id="bgBtn" onclick="toggleBackground()" title="Toggle background opacity">BG</button>
+                <button class="control-btn" id="ctBtn" onclick="toggleClickThrough()" title="Manual click-through">CT</button>
+                <button class="control-btn" id="autoCtBtn" onclick="toggleAutoClickThrough()" title="Auto click-through for games">Auto On</button>
+                <button class="control-btn" onclick="adjustOpacity()">Opacity</button>
+                <button class="control-btn" onclick="adjustFontSize()">Font</button>
+                <button class="control-btn" onclick="refreshNow()">Refresh</button>
+                <button class="control-btn" onclick="showDebugInfo()">Debug</button>
+            </div>
         </div>
     </div>
 
@@ -256,6 +282,7 @@
         let autoClickThrough = true; // Auto-detect and enable click-through for games
         let isGameActive = false;
         let gameDetectionTimer = null;
+        let settingsOpen = false;
 
         // Initialize app
         window.addEventListener('DOMContentLoaded', () => {
@@ -280,6 +307,15 @@
                     swallowNextClick = false;
                 }
             }, true);
+            
+            // Close settings if clicking outside of it
+            document.addEventListener('mousedown', (e) => {
+                const panel = document.getElementById('settingsPanel');
+                const toggle = document.getElementById('settingsToggle');
+                if (!panel || panel.classList.contains('hidden')) return;
+                if (e.target === panel || panel.contains(e.target) || e.target === toggle) return;
+                panel.classList.add('hidden');
+            });
             applyClickThroughState();
             
             // Start game detection
@@ -307,6 +343,14 @@
         function showAuthModal() {
             document.getElementById('authModal').classList.add('show');
         }
+        // Settings
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            if (!panel) return;
+            settingsOpen = !settingsOpen;
+            panel.classList.toggle('hidden', !settingsOpen);
+        }
+
 
         // Hide authentication modal
         function hideAuthModal() {
@@ -528,7 +572,7 @@
         // Manual window drag for reliability on Windows
         async function onDragStart(e) {
             if (isLocked) return;
-            if (e.target.closest('.controls')) return; // don't start drag from controls
+            if (e.target.closest('.settings-panel') || e.target.closest('.settings-toggle')) return; // don't start drag from settings UI
             // Avoid starting drag from a thin resize gutter area near edges
             const edgeMargin = 8;
             const rect = document.getElementById('overlayContainer').getBoundingClientRect();
