@@ -10,7 +10,7 @@ A personal-use desktop app that shows time-synced or plain text lyrics in an alw
 - Spotify OAuth2 Authorization Code flow with localhost callback
 - Resilient Spotify API polling with exponential backoff
 - LRU cache for lyrics (by track ID and normalized artist|title)
-- LyricsProvider interface with Genius API integration
+- Lyrics providers: LRCLIB (synced when available) + Genius fallback
 - Minimal HTML/CSS/JS frontend for overlay UI
 - Configuration persistence in user's home directory
 
@@ -31,6 +31,7 @@ A personal-use desktop app that shows time-synced or plain text lyrics in an alw
 1. **Go 1.22+** installed on your system
 2. **Spotify Developer Account** - Register an app at [Spotify Dashboard](https://developer.spotify.com/dashboard)
 3. **Genius API Token** (optional) - Get from [Genius API Clients](https://genius.com/api-clients)
+   - Not required. LRCLIB is used by default and often returns synced lyrics.
 
 ### Installation
 
@@ -42,21 +43,31 @@ A personal-use desktop app that shows time-synced or plain text lyrics in an alw
    ```
 
 2. **Configure Spotify API:**
-   - Create `.env.local` based on `.env.local.example`
-   - Set your `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`
-   - Set `REDIRECT_URI=http://127.0.0.1:8080/callback`
+   - First run will create a config file at `~/.spotly/config.json`.
+   - Edit that file and set:
+     - `spotify_client_id`
+     - `spotify_client_secret`
+     - `redirect_uri` should be `http://127.0.0.1:8080/callback` (and must be added in your Spotify Dashboard)
+     - Optionally set `genius_token` to enable Genius fallback.
+    - Windows path example: `C:\Users\<YOU>\.spotly\config.json`
 
 3. **Install Wails v2 CLI:**
    ```bash
    go install github.com/wailsapp/wails/v2/cmd/wails@latest
    ```
 
-4. **Development run:**
+4. **Windows quick build:**
+   - Double-click `build.bat` or run:
+     ```bash
+     ./build.bat
+     ```
+
+5. **Development run:**
    ```bash
    wails dev
    ```
 
-5. **Build for production:**
+6. **Build for production:**
    ```bash
    wails build
    ```
@@ -89,16 +100,17 @@ The app creates a config file at `~/.spotly/config.json` with these settings:
 ## Usage
 
 1. **First Run:**
-   - Launch the app
-   - Click "Connect with Spotify" in the overlay
-   - Authenticate in your browser
-   - The overlay will show current track lyrics
+   - Launch the app (`spotly.exe` or `wails dev` during development)
+   - In the overlay, click "Connect with Spotify"
+   - Complete the browser authentication
+   - Start playing a song in Spotify
+   - The overlay will show the lyrics:
+     - LRCLIB first (synced if available),
+     - Genius scraped text as fallback (unsynced)
 
 2. **Controls:**
-   - **Hover overlay** to show controls
-   - **Ctrl+H** - Toggle visibility
-   - **Ctrl+O** - Adjust opacity
-   - **Ctrl+F** - Adjust font size
+   - Hover the overlay to show controls
+   - Toggle visibility, lock position, adjust opacity and font size from the UI
 
 3. **Window Management:**
    - Drag to reposition (when unlocked)
@@ -108,7 +120,7 @@ The app creates a config file at `~/.spotly/config.json` with these settings:
 ## Architecture
 
 ```
-cmd/spotly/           # Main application entry
+main.go               # Main application entry (Wails app)
 internal/
   ├── auth/          # Spotify OAuth2 flow
   ├── cache/         # LRU lyrics cache
@@ -134,7 +146,8 @@ frontend/dist/       # Wails frontend (HTML/CSS/JS)
 
 - `GET /me/player/currently-playing` - Current track and progress
 - `GET /me/player` - Player state (optional, for enhanced device info)
-- Genius API for lyrics search and metadata
+- LRCLIB API: `GET /api/get?track_name=...&artist_name=...` and `GET /api/search?track_name=...&artist_name=...`
+- Genius API for search (lyrics scraped from song page as fallback)
 
 ## Troubleshooting
 
@@ -157,9 +170,13 @@ frontend/dist/       # Wails frontend (HTML/CSS/JS)
    - Increase `POLL_INTERVAL` if needed
 
 4. **No lyrics found:**
-   - Genius token may be required for full lyrics
+   - LRCLIB may not have the track; Genius fallback needs a valid `genius_token`
    - Some tracks may not have lyrics available
-   - Check normalization of artist/title names
+   - Ensure artist/title metadata is clean (the app normalizes common suffixes)
+
+5. **Shows translation or wrong text:**
+   - LRCLIB should return original lyrics when available
+   - Genius fallback filters translation blocks; report specific tracks if you see issues
 
 ## Contributing
 

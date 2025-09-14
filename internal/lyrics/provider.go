@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -67,29 +68,44 @@ func (s *Service) AddProvider(provider LyricsProvider) {
 func (s *Service) GetLyrics(trackID, artist, title string) (*overlay.LyricsData, error) {
 	// Check cache first by track ID
 	if lyrics := s.cache.GetByTrackID(trackID); lyrics != nil {
-		return lyrics, nil
+		// Don't accept demo/info cache as final result
+		if strings.EqualFold(lyrics.Source, "Info") || strings.EqualFold(lyrics.Source, "Demo") {
+			log.Printf("Lyrics cache hit is Info/Demo for %s - %s, ignoring and refetching", artist, title)
+		} else {
+			return lyrics, nil
+		}
 	}
 
 	// Normalize artist and title for cache lookup
 	normalizedKey := normalizeForCache(artist, title)
 	if lyrics := s.cache.GetByKey(normalizedKey); lyrics != nil {
 		// Cache hit with normalized key, also cache by track ID
-		s.cache.SetByTrackID(trackID, lyrics)
-		return lyrics, nil
+		if strings.EqualFold(lyrics.Source, "Info") || strings.EqualFold(lyrics.Source, "Demo") {
+			log.Printf("Lyrics cache(key) is Info/Demo for %s - %s, ignoring and refetching", artist, title)
+		} else {
+			s.cache.SetByTrackID(trackID, lyrics)
+			return lyrics, nil
+		}
 	}
 
 	// No cache hit, fetch from providers
 	for _, provider := range s.providers {
+		log.Printf("Lyrics: trying provider %s for %s - %s", provider.GetName(), artist, title)
 		lyrics, err := provider.SearchLyrics(artist, title)
 		if err != nil {
+			log.Printf("Lyrics: provider %s error: %v", provider.GetName(), err)
 			continue // Try next provider
 		}
 
 		if lyrics != nil && len(lyrics.Lines) > 0 {
-			// Cache the result
+			// Cache the result (but skip caching demo/info fallback)
 			lyrics.TrackID = trackID
-			s.cache.SetByTrackID(trackID, lyrics)
-			s.cache.SetByKey(normalizedKey, lyrics)
+			if !(strings.EqualFold(lyrics.Source, "Info") || strings.EqualFold(lyrics.Source, "Demo")) {
+				s.cache.SetByTrackID(trackID, lyrics)
+				s.cache.SetByKey(normalizedKey, lyrics)
+			} else {
+				log.Printf("Lyrics: not caching Info/Demo result for %s - %s", artist, title)
+			}
 			return lyrics, nil
 		}
 	}
@@ -359,7 +375,44 @@ func textToLyricsLines(text string) []overlay.LyricsLine {
 		}
 		// e.g., "123Embed"
 		re := regexp.MustCompile(`^\d+\s*embed$`)
-		return re.MatchString(t)
+		if re.MatchString(t) {
+			return true
+		}
+
+		// Skip contributor/translation UI strings from Genius
+		if strings.Contains(t, "contributors") {
+			return true
+		}
+		if strings.Contains(t, "translation") || strings.Contains(t, "translations") {
+			return true
+		}
+
+		// Skip standalone language names often listed under translations
+		langWords := map[string]struct{}{
+			"cesky": {}, "česky": {}, "čeština": {}, "deutsch": {}, "français": {}, "francais": {},
+			"español": {}, "espanol": {}, "português": {}, "portugues": {}, "italiano": {}, "polski": {},
+			"nederlands": {}, "svenska": {}, "suomi": {}, "dansk": {}, "norsk": {}, "русский": {},
+			"русский язык": {}, "bahasa": {}, "bahasa indonesia": {}, "tiếng": {}, "tiếng việt": {}, "tieng viet": {},
+			"türkçe": {}, "turkce": {}, "العربية": {}, "hebrew": {}, "עברית": {},
+			"日本語": {}, "한국어": {}, "中文": {}, "简体中文": {}, "繁體中文": {}, "ไทย": {},
+		}
+		ws := regexp.MustCompile(`\s+`)
+		norm := ws.ReplaceAllString(t, " ")
+		tokens := strings.Fields(norm)
+		if len(tokens) > 0 && len(tokens) <= 3 {
+			allLang := true
+			for _, tok := range tokens {
+				if _, ok := langWords[tok]; !ok {
+					allLang = false
+					break
+				}
+			}
+			if allLang {
+				return true
+			}
+		}
+
+		return false
 	}
 
 	lastWasEmpty := false
@@ -491,13 +544,13 @@ func (l *LRCLibProvider) GetName() string {
 
 // lrcLibTrack is the structure returned by LRCLIB
 type lrcLibTrack struct {
-	ID           int    `json:"id"`
-	TrackName    string `json:"trackName"`
-	ArtistName   string `json:"artistName"`
-	AlbumName    string `json:"albumName"`
-	Duration     int    `json:"duration"`     // seconds
-	PlainLyrics  string `json:"plainLyrics"`
-	SyncedLyrics string `json:"syncedLyrics"`
+	ID           int     `json:"id"`
+	TrackName    string  `json:"trackName"`
+	ArtistName   string  `json:"artistName"`
+	AlbumName    string  `json:"albumName"`
+	Duration     float64 `json:"duration"` // seconds
+	PlainLyrics  string  `json:"plainLyrics"`
+	SyncedLyrics string  `json:"syncedLyrics"`
 }
 
 // SearchLyrics queries LRCLIB for lyrics
@@ -514,8 +567,19 @@ func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData
 	if err != nil {
 		return nil, err
 	}
+
+	// If empty, try query fallback
 	if len(results) == 0 {
-		return nil, fmt.Errorf("no lrclib results")
+		q := strings.TrimSpace(fmt.Sprintf("%s %s", title, artist))
+		if q != "" {
+			results, err = l.searchByQuery(q)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if len(results) == 0 {
+			return nil, fmt.Errorf("no lrclib results")
+		}
 	}
 
 	// Score and pick best match
@@ -524,6 +588,15 @@ func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData
 		best = &results[0]
 	}
 
+	// Important: LRCLIB search results may not include lyrics; fetch by ID
+	full, err := l.getByID(best.ID)
+	if err == nil && full != nil {
+		if data := l.trackToLyricsData(full); data != nil {
+			return data, nil
+		}
+	}
+
+	// Fallback to whatever search returned (if it had lyrics fields)
 	data := l.trackToLyricsData(best)
 	if data == nil {
 		return nil, fmt.Errorf("lrclib returned empty lyrics")
@@ -533,6 +606,8 @@ func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData
 
 func (l *LRCLibProvider) tryGet(artist, title string) *lrcLibTrack {
 	endpoint := fmt.Sprintf("%s/get?track_name=%s&artist_name=%s", l.baseURL, url.QueryEscape(title), url.QueryEscape(artist))
+	// Note: duration/album params can be added if available from caller
+	// e.g., &album_name=...&duration=...
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil
@@ -562,11 +637,39 @@ func (l *LRCLibProvider) tryGet(artist, title string) *lrcLibTrack {
 
 func (l *LRCLibProvider) search(artist, title string) ([]lrcLibTrack, error) {
 	endpoint := fmt.Sprintf("%s/search?track_name=%s&artist_name=%s", l.baseURL, url.QueryEscape(title), url.QueryEscape(artist))
+	// Note: duration/album params can be added if available from caller
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
+	resp, err := l.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("lrclib search status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var results []lrcLibTrack
+	if err := json.Unmarshal(body, &results); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (l *LRCLibProvider) searchByQuery(query string) ([]lrcLibTrack, error) {
+	endpoint := fmt.Sprintf("%s/search?q=%s", l.baseURL, url.QueryEscape(query))
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "SpotLy/1.0")
 	resp, err := l.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -709,6 +812,55 @@ func atoiSafe(s string) int {
 		res = res*10 + int(c-'0')
 	}
 	return res
+}
+
+// getByID fetches a single track with lyrics by LRCLIB ID
+func (l *LRCLibProvider) getByID(id int) (*lrcLibTrack, error) {
+	// Try REST style first: /get/{id}
+	endpoint := fmt.Sprintf("%s/get/%d", l.baseURL, id)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "SpotLy/1.0")
+	resp, err := l.client.Do(req)
+	if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		var track lrcLibTrack
+		if err := json.Unmarshal(body, &track); err == nil {
+			return &track, nil
+		}
+	}
+	// Fallback to query param style: /get?id=123
+	endpoint = fmt.Sprintf("%s/get?id=%d", l.baseURL, id)
+	req, err = http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "SpotLy/1.0")
+	resp, err = l.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("lrclib get status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var track lrcLibTrack
+	if err := json.Unmarshal(body, &track); err != nil {
+		return nil, err
+	}
+	return &track, nil
 }
 
 // DemoProvider provides demo lyrics for any track

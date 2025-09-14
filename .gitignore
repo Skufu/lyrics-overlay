@@ -1,2 +1,20 @@
-go.sum
-go.mod
+# Go build
+bin/
+build/
+spotly.exe
+
+# Wails build artifacts
+frontend/wailsjs/
+
+# Local env
+.env
+.env.*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Cache
+*.cache
+node_modules/

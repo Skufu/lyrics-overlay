@@ -403,8 +403,8 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
-		Width:  400,
-		Height: 200,
+		Width:  600,
+		Height: 160,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -413,13 +413,13 @@ func main() {
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0}, // Transparent
 		DisableResize:    disableResizeAtStartup,
 		Windows: &wailswindows.Options{
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  true,
+			WebviewIsTransparent:              true,
+			WindowIsTranslucent:               true,
 			DisableFramelessWindowDecorations: true,
 		},
 		OnStartup:        app.OnStartup,
 		OnShutdown:       app.OnShutdown,
-		WindowStartState: options.Minimised, // Start minimized
+		WindowStartState: options.Normal,
 		Bind:             []interface{}{app},
 	})
 

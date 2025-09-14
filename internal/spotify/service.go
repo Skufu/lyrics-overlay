@@ -10,6 +10,7 @@ import (
 	"github.com/zmb3/spotify/v2"
 
 	"lyrics-overlay/internal/auth"
+	"lyrics-overlay/internal/lyrics"
 	"lyrics-overlay/internal/overlay"
 )
 
@@ -17,6 +18,7 @@ import (
 type Service struct {
 	auth              *auth.Service
 	overlay           *overlay.Service
+	lyrics            *lyrics.Service
 	stopChan          chan struct{}
 	isPolling         bool
 	baseInterval      time.Duration
@@ -28,10 +30,11 @@ type Service struct {
 }
 
 // New creates a new Spotify service
-func New(authSvc *auth.Service, overlaySvc *overlay.Service) *Service {
+func New(authSvc *auth.Service, overlaySvc *overlay.Service, lyricsSvc *lyrics.Service) *Service {
 	return &Service{
 		auth:            authSvc,
 		overlay:         overlaySvc,
+		lyrics:          lyricsSvc,
 		stopChan:        make(chan struct{}),
 		baseInterval:    4 * time.Second,  // Base polling interval
 		currentInterval: 4 * time.Second,  // Current polling interval
@@ -84,6 +87,7 @@ func (s *Service) pollLoop() {
 func (s *Service) pollCurrentlyPlaying() {
 	client := s.auth.GetClient()
 	if client == nil {
+		log.Printf("Spotify polling: No client available")
 		// Not authenticated, slow down polling
 		s.adjustInterval(false, true)
 		s.overlay.SetCurrentTrack(nil)
@@ -97,21 +101,31 @@ func (s *Service) pollCurrentlyPlaying() {
 	jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
 	time.Sleep(jitter)
 
+	log.Printf("Spotify polling: Checking currently playing...")
 	playerState, err := client.PlayerCurrentlyPlaying(ctx)
 	if err != nil {
+		log.Printf("Spotify polling error: %v", err)
 		s.handleError(err)
 		return
 	}
 
 	// Handle different response scenarios
-	if playerState == nil || playerState.Item == nil {
-		// No currently playing track or player not active
+	if playerState == nil {
+		log.Printf("Spotify polling: playerState is nil (no active device or no playback)")
 		s.handleNoPlayback()
 		return
 	}
 
-	// Note: Some library versions do not expose a content type field.
-	// If an item exists, we treat it as a track; otherwise handle as non-music/no playback.
+	if playerState.Item == nil {
+		log.Printf("Spotify polling: playerState.Item is nil (no track)")
+		s.handleNoPlayback()
+		return
+	}
+
+	log.Printf("Spotify polling: Found track: %s by %s (playing: %v)",
+		playerState.Item.Name,
+		playerState.Item.Artists[0].Name,
+		playerState.Playing)
 
 	// Extract track information
 	track := s.extractTrackInfo(playerState)
@@ -123,10 +137,16 @@ func (s *Service) pollCurrentlyPlaying() {
 
 		// Reset polling interval on track change
 		s.resetInterval()
+
+		// Fetch lyrics on track change
+		if s.lyrics != nil {
+			go s.fetchAndSetLyrics(track)
+		}
 	}
 
 	// Update overlay with current track
 	s.overlay.SetCurrentTrack(track)
+	log.Printf("Spotify polling: Updated overlay with track info")
 
 	// Adjust polling based on playback state
 	if track.IsPlaying {
@@ -137,6 +157,21 @@ func (s *Service) pollCurrentlyPlaying() {
 
 	// Reset error count on successful poll
 	s.consecutiveErrors = 0
+}
+
+// fetchAndSetLyrics queries the lyrics service and updates the overlay
+func (s *Service) fetchAndSetLyrics(track *overlay.TrackInfo) {
+	artist := ""
+	if len(track.Artists) > 0 {
+		artist = track.Artists[0]
+	}
+	lyrics, err := s.lyrics.GetLyrics(track.ID, artist, track.Name)
+	if err != nil || lyrics == nil {
+		// Clear lyrics if not found to avoid stale display
+		s.overlay.SetCurrentLyrics(nil)
+		return
+	}
+	s.overlay.SetCurrentLyrics(lyrics)
 }
 
 // extractTrackInfo extracts track information from Spotify API response
