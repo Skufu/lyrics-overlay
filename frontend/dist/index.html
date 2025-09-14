@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SpotLy Overlay</title>
     <style>
+        html, body, :root {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -35,12 +39,12 @@
             position: relative; /* anchor absolute children like controls/status */
         }
 
-        /* Background enabled mode */
+        /* Background mode disabled: force full transparency regardless of state */
         .overlay-container.has-background {
-            background: rgba(0, 0, 0, 0.7) !important;
-            backdrop-filter: blur(10px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         /* Controls should not add any dark background in transparent mode */
@@ -244,6 +248,8 @@
         let isLocked = false;
         let bgEnabled = false; // false = fully transparent background (default); true = blurred card
         let dragging = false;
+        let dragMoved = false;
+        let swallowNextClick = false;
         let dragStart = { x: 0, y: 0 };
         let winStart = { x: 0, y: 0 };
         let clickThrough = false;
@@ -267,6 +273,13 @@
 
             const container = document.getElementById('overlayContainer');
             container.addEventListener('mousedown', onDragStart);
+            container.addEventListener('click', (e) => {
+                if (swallowNextClick) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    swallowNextClick = false;
+                }
+            }, true);
             applyClickThroughState();
             
             // Start game detection
@@ -516,7 +529,19 @@
         async function onDragStart(e) {
             if (isLocked) return;
             if (e.target.closest('.controls')) return; // don't start drag from controls
+            // Avoid starting drag from a thin resize gutter area near edges
+            const edgeMargin = 8;
+            const rect = document.getElementById('overlayContainer').getBoundingClientRect();
+            if (
+                e.clientX - rect.left < edgeMargin ||
+                rect.right - e.clientX < edgeMargin ||
+                e.clientY - rect.top < edgeMargin ||
+                rect.bottom - e.clientY < edgeMargin
+            ) {
+                return; // allow native resize without starting drag
+            }
             dragging = true;
+            dragMoved = false;
             dragStart = { x: e.screenX, y: e.screenY };
             try {
                 const pos = await window.runtime?.WindowGetPosition?.();
@@ -534,6 +559,9 @@
             if (!dragging) return;
             const dx = e.screenX - dragStart.x;
             const dy = e.screenY - dragStart.y;
+            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                dragMoved = true;
+            }
             try {
                 window.runtime?.WindowSetPosition?.(winStart.x + dx, winStart.y + dy);
             } catch {}
@@ -542,6 +570,10 @@
 
         function onDragEnd() {
             dragging = false;
+            if (dragMoved) {
+                // Prevent the click that follows a drag from triggering buttons
+                swallowNextClick = true;
+            }
             document.removeEventListener('mousemove', onDragMove);
             document.removeEventListener('mouseup', onDragEnd);
         }
