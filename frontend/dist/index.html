@@ -130,8 +130,8 @@
             position: absolute;
             top: 44px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.72);
+            border: none;
             border-radius: 8px;
             padding: 8px;
             -webkit-app-region: no-drag;
@@ -240,6 +240,7 @@
             <div class="settings-row">
                 <button class="control-btn" id="visBtn" onclick="toggleVisibility()">Hide</button>
                 <button class="control-btn" id="lockBtn" onclick="toggleLock()">Lock</button>
+                <button class="control-btn" id="resizeBtn" onclick="toggleResizeLock()" title="Disable window resizing">Resize On</button>
                 <button class="control-btn" id="bgBtn" onclick="toggleBackground()" title="Toggle background opacity">BG</button>
                 <button class="control-btn" id="ctBtn" onclick="toggleClickThrough()" title="Manual click-through">CT</button>
                 <button class="control-btn" id="autoCtBtn" onclick="toggleAutoClickThrough()" title="Auto click-through for games">Auto On</button>
@@ -283,9 +284,10 @@
         let isGameActive = false;
         let gameDetectionTimer = null;
         let settingsOpen = false;
+        let resizeLocked = false;
 
         // Initialize app
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             console.log('SpotLy Overlay initialized');
             
             // Ensure auth modal is hidden initially
@@ -320,6 +322,14 @@
             
             // Start game detection
             startGameDetection();
+            // Load initial resize lock state
+            try {
+                const cfg = await window.go?.main?.App?.GetOverlayConfig?.();
+                if (cfg && typeof cfg.resize_locked === 'boolean') {
+                    resizeLocked = cfg.resize_locked;
+                    applyResizeLockState();
+                }
+            } catch {}
         });
 
         // Check authentication status
@@ -518,6 +528,35 @@
             const autoCtBtn = document.getElementById('autoCtBtn');
             if (!autoCtBtn) return;
             autoCtBtn.textContent = autoClickThrough ? 'Auto On' : 'Auto';
+        }
+
+        // Resize lock
+        function applyResizeLockState() {
+            const btn = document.getElementById('resizeBtn');
+            if (btn) btn.textContent = resizeLocked ? 'Resize Off' : 'Resize On';
+            try {
+                if (resizeLocked) {
+                    const sizePromise = window.runtime?.WindowGetSize?.();
+                    if (sizePromise && typeof sizePromise.then === 'function') {
+                        sizePromise.then(sz => {
+                            if (!sz) return;
+                            window.runtime?.WindowSetMinSize?.(sz.w, sz.h);
+                            window.runtime?.WindowSetMaxSize?.(sz.w, sz.h);
+                        });
+                    }
+                } else {
+                    window.runtime?.WindowSetMinSize?.(0, 0);
+                    window.runtime?.WindowSetMaxSize?.(0, 0);
+                }
+            } catch {}
+        }
+
+        async function toggleResizeLock() {
+            resizeLocked = !resizeLocked;
+            applyResizeLockState();
+            try {
+                await window.go?.main?.App?.UpdateOverlayConfig?.({ resize_locked: resizeLocked });
+            } catch {}
         }
 
         // Game detection

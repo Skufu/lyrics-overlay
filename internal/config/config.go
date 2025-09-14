@@ -27,15 +27,16 @@ type Config struct {
 
 // OverlayConfig holds overlay window settings
 type OverlayConfig struct {
-	X          int     `json:"x"`
-	Y          int     `json:"y"`
-	Width      int     `json:"width"`
-	Height     int     `json:"height"`
-	Opacity    float64 `json:"opacity"`
-	FontSize   int     `json:"font_size"`
-	Visible    bool    `json:"visible"`
-	Locked     bool    `json:"locked"`
-	Position   string  `json:"position"` // "top-left", "top-right", "bottom-left", "bottom-right"
+	X            int     `json:"x"`
+	Y            int     `json:"y"`
+	Width        int     `json:"width"`
+	Height       int     `json:"height"`
+	Opacity      float64 `json:"opacity"`
+	FontSize     int     `json:"font_size"`
+	Visible      bool    `json:"visible"`
+	Locked       bool    `json:"locked"`
+	Position     string  `json:"position"` // "top-left", "top-right", "bottom-left", "bottom-right"
+	ResizeLocked bool    `json:"resize_locked"`
 }
 
 // AuthConfig holds OAuth tokens
@@ -96,6 +97,7 @@ func getDefaultConfig() *Config {
 			Visible:  true,
 			Locked:   false,
 			Position: "bottom-left",
+			ResizeLocked: false,
 		},
 	}
 }

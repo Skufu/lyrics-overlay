@@ -332,8 +332,19 @@ func (a *App) UpdateOverlayConfig(config map[string]interface{}) error {
 	if position, ok := config["position"].(string); ok {
 		current.Position = position
 	}
+	if resizeLocked, ok := config["resize_locked"].(bool); ok {
+		current.ResizeLocked = resizeLocked
+	}
 
 	return a.overlay.UpdateOverlayConfig(current)
+}
+
+// GetOverlayConfig returns current overlay configuration
+func (a *App) GetOverlayConfig() config.OverlayConfig {
+    if a.overlay == nil {
+        return config.OverlayConfig{}
+    }
+    return a.overlay.GetOverlayConfig()
 }
 
 // GetActiveWindow returns the title of the currently active window
