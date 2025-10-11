@@ -61,9 +61,12 @@ func New() (*Service, error) {
 	}
 
 	configDir := filepath.Join(homeDir, ".spotly")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	// Ensure directory exists with restrictive permissions
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
+	// Attempt to enforce 0700 if existing dir has broader perms
+	_ = os.Chmod(configDir, 0700)
 
 	configPath := filepath.Join(configDir, "config.json")
 
@@ -129,7 +132,20 @@ func (s *Service) Save() error {
 		return err
 	}
 
-	return os.WriteFile(s.filePath, data, 0644)
+	// Write atomically with restrictive permissions
+	dir := filepath.Dir(s.filePath)
+	tmp := filepath.Join(dir, ".config.json.tmp")
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		return err
+	}
+	// Ensure final file perm is 0600
+	if err := os.Rename(tmp, s.filePath); err != nil {
+		// Cleanup tmp on failure
+		_ = os.Remove(tmp)
+		return err
+	}
+	_ = os.Chmod(s.filePath, 0600)
+	return nil
 }
 
 // UpdateOverlay updates overlay configuration

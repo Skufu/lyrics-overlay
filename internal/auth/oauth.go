@@ -17,11 +17,11 @@ import (
 
 // Service handles Spotify OAuth2 authentication
 type Service struct {
-	config       *config.Service
+	config        *config.Service
 	authenticator *spotifyauth.Authenticator
-	client       *spotify.Client
-	server       *http.Server
-	state        string
+	client        *spotify.Client
+	server        *http.Server
+	state         string
 }
 
 // New creates a new auth service
@@ -75,7 +75,7 @@ func generateRandomState() (string, error) {
 // createClientFromStoredTokens creates a Spotify client from stored tokens
 func (s *Service) createClientFromStoredTokens() {
 	cfg := s.config.Get()
-	
+
 	token := &oauth2.Token{
 		AccessToken:  cfg.Auth.AccessToken,
 		RefreshToken: cfg.Auth.RefreshToken,
@@ -126,7 +126,14 @@ func (s *Service) GetClient() *spotify.Client {
 func (s *Service) StartOAuthFlow() error {
 	cfg := s.config.Get()
 
-	// Start the callback server
+	// Regenerate state for this flow to mitigate CSRF/replay within app runtime
+	newState, err := generateRandomState()
+	if err != nil {
+		return fmt.Errorf("failed to generate OAuth state: %w", err)
+	}
+	s.state = newState
+
+	// Start the callback server bound to loopback
 	if err := s.startCallbackServer(cfg.Port); err != nil {
 		return fmt.Errorf("failed to start callback server: %w", err)
 	}
@@ -145,9 +152,14 @@ func (s *Service) startCallbackServer(port int) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/callback", s.handleCallback)
 
+	// Bind explicitly to loopback and set conservative timeouts
 	s.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: mux,
+		Addr:              fmt.Sprintf("127.0.0.1:%d", port),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       30 * time.Second,
 	}
 
 	go func() {
@@ -156,12 +168,24 @@ func (s *Service) startCallbackServer(port int) error {
 		}
 	}()
 
+	// Safety net: shut down callback server if no callback arrives within 10 minutes
+	go func() {
+		time.Sleep(10 * time.Minute)
+		s.stopCallbackServer()
+	}()
+
 	return nil
 }
 
 // handleCallback handles the OAuth callback
 func (s *Service) handleCallback(w http.ResponseWriter, r *http.Request) {
 	defer s.stopCallbackServer()
+
+	// Restrict to GET for OAuth callback
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	// Check for errors
 	if err := r.URL.Query().Get("error"); err != "" {
@@ -176,9 +200,11 @@ func (s *Service) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Exchange authorization code for tokens
+	// Exchange authorization code for tokens (with timeout)
 	code := r.URL.Query().Get("code")
-	token, err := s.authenticator.Exchange(context.Background(), code)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	token, err := s.authenticator.Exchange(ctx, code)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Token exchange failed: %v", err), http.StatusInternalServerError)
 		return
@@ -193,7 +219,15 @@ func (s *Service) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// Create Spotify client
 	s.client = spotify.New(s.authenticator.Client(context.Background(), token))
 
-	// Send success response
+	// Set strict security headers and send success response
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'")
+
 	fmt.Fprintf(w, `
 <!DOCTYPE html>
 <html>
@@ -254,8 +288,10 @@ func (s *Service) refreshToken() error {
 		Expiry:       time.Unix(cfg.Auth.ExpiresAt, 0),
 	}
 
-	// Use the authenticator to refresh the token
-	newToken, err := s.authenticator.RefreshToken(context.Background(), token)
+	// Use the authenticator to refresh the token (with timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	newToken, err := s.authenticator.RefreshToken(ctx, token)
 	if err != nil {
 		return fmt.Errorf("failed to refresh token: %w", err)
 	}
@@ -287,5 +323,9 @@ func (s *Service) Logout() {
 
 // GetAuthURL returns the OAuth authorization URL
 func (s *Service) GetAuthURL() string {
+	// Generate a fresh state whenever producing a URL
+	if newState, err := generateRandomState(); err == nil {
+		s.state = newState
+	}
 	return s.authenticator.AuthURL(s.state)
 }

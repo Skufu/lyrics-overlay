@@ -216,8 +216,21 @@ func (g *GeniusProvider) SearchLyrics(artist, title string) (*overlay.LyricsData
 
 // fetchLyricsFromPage downloads and extracts lyrics text from a Genius song page URL
 func (g *GeniusProvider) fetchLyricsFromPage(pageURL string) (string, error) {
+	// Validate URL scheme and host to avoid fetching untrusted domains
+	u, err := url.Parse(pageURL)
+	if err != nil {
+		return "", err
+	}
+	if strings.ToLower(u.Scheme) != "https" {
+		return "", fmt.Errorf("genius page must be https")
+	}
+	host := strings.ToLower(u.Hostname())
+	if host != "genius.com" && host != "www.genius.com" {
+		return "", fmt.Errorf("unexpected genius host: %s", host)
+	}
+
 	// Create request
-	req, err := http.NewRequest("GET", pageURL, nil)
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return "", err
 	}
