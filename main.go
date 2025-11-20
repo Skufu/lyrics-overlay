@@ -14,6 +14,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	wailswindows "github.com/wailsapp/wails/v2/pkg/options/windows"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 
 	"lyrics-overlay/internal/auth"
@@ -367,6 +368,11 @@ func (a *App) GetOverlayConfig() config.OverlayConfig {
 	return a.overlay.GetOverlayConfig()
 }
 
+// Quit closes the application
+func (a *App) Quit() {
+	runtime.Quit(a.ctx)
+}
+
 // GetConfigPath returns the full path to the user's config file
 func (a *App) GetConfigPath() string {
 	if a.config == nil {
@@ -525,7 +531,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
 		Width:  450,
-		Height: 490, // Increased height for better modal spacing
+		Height: 600, // Increased height for glass modal effect
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
