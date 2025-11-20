@@ -525,7 +525,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
 		Width:  400,
-		Height: 250,
+		Height: 320, // Increased to fit full settings panel
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

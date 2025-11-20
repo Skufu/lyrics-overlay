@@ -61,8 +61,6 @@
         }
         /* Remove legacy controls in click-through context */
         .overlay-container.click-through .controls { display: none !important; }
-        /* In click-through, hide the gear entirely */
-        .overlay-container.click-through .settings-toggle { display: none !important; }
 
         .lyrics-display {
             text-align: center;
@@ -176,10 +174,6 @@
             background: rgba(29, 185, 84, 0.8);
         }
 
-        /* Only show when lyrics are clicked */
-        .overlay-container.show-settings .settings-toggle {
-            display: flex; /* Make visible */
-        }
 
         /* Settings panel */
         .settings-panel {
@@ -454,6 +448,22 @@
     </div>
 
     <script>
+        // Force hide gear icon and status indicator on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const gear = document.getElementById('settingsToggle');
+            const indicator = document.getElementById('statusIndicator');
+            if (gear) {
+                gear.style.display = 'none';
+                gear.style.opacity = '0';
+                gear.style.visibility = 'hidden';
+            }
+            if (indicator) {
+                indicator.style.display = 'none';
+                indicator.style.opacity = '0';
+                indicator.style.visibility = 'hidden';
+            }
+        });
+
         // Global state
         let isMinimized = false;
         let currentOpacity = 0.9;
@@ -508,8 +518,38 @@
                     container.classList.remove('show-settings');
                 }, 1000);
             });
+
+            // ✅ ADD THIS: Hide gear and indicator when window loses focus
+            window.addEventListener('blur', () => {
+                const container = document.getElementById('overlayContainer');
+                const gear = document.getElementById('settingsToggle');
+                const indicator = document.getElementById('statusIndicator');
+
+                container.classList.remove('show-settings');
+                clearTimeout(window.gearHideTimer);
+
+                // Force hide gear and indicator
+                if (gear) {
+                    gear.style.display = 'none';
+                    gear.style.opacity = '0';
+                    gear.style.visibility = 'hidden';
+                }
+                if (indicator) {
+                    indicator.style.display = 'none';
+                    indicator.style.opacity = '0';
+                    indicator.style.visibility = 'hidden';
+                }
+
+                // Close settings if open
+                if (settingsOpen) {
+                    settingsOpen = false;
+                    document.getElementById('settingsPanel').classList.add('hidden');
+                    if (gear) gear.classList.remove('active');
+                }
+            });
+
             applyClickThroughState();
-            
+
             // Start game detection
             startGameDetection();
         });
@@ -538,25 +578,42 @@
         // Show settings gear when lyrics are clicked
         function showSettingsGear() {
             const container = document.getElementById('overlayContainer');
+            const gear = document.getElementById('settingsToggle');
+            const indicator = document.getElementById('statusIndicator');
+
             container.classList.add('show-settings');
 
-            // Hide gear after 3 seconds of inactivity
+            // Force show the gear and status indicator
+            if (gear) {
+                gear.style.display = 'flex';
+                gear.style.opacity = '1';
+                gear.style.visibility = 'visible';
+            }
+            if (indicator) {
+                indicator.style.display = 'block';
+                indicator.style.opacity = '1';
+                indicator.style.visibility = 'visible';
+            }
+
+            // Hide gear and indicator after 3 seconds of inactivity
             clearTimeout(window.gearHideTimer);
             window.gearHideTimer = setTimeout(() => {
-                if (!settingsOpen) { // Don't hide if settings panel is open
+                if (!settingsOpen) {
+                    if (gear) {
+                        gear.style.display = 'none';
+                        gear.style.opacity = '0';
+                        gear.style.visibility = 'hidden';
+                    }
+                    if (indicator) {
+                        indicator.style.display = 'none';
+                        indicator.style.opacity = '0';
+                        indicator.style.visibility = 'hidden';
+                    }
                     container.classList.remove('show-settings');
                 }
             }, 3000);
         }
 
-        // Hide gear when window loses focus
-        window.addEventListener('blur', () => {
-            if (!settingsOpen) {
-                const container = document.getElementById('overlayContainer');
-                container.classList.remove('show-settings');
-                clearTimeout(window.gearHideTimer);
-            }
-        });
 
         // Update toggleSettings to manage visibility
         function toggleSettings() {
@@ -569,15 +626,37 @@
             panel.classList.toggle('hidden', !settingsOpen);
             toggle.classList.toggle('active', settingsOpen);
 
-            // Keep gear visible when settings are open
+            // Keep gear and indicator visible when settings are open
             if (settingsOpen) {
                 container.classList.add('show-settings');
                 clearTimeout(window.gearHideTimer);
+                // Force show gear and indicator when settings are open
+                if (toggle) {
+                    toggle.style.display = 'flex';
+                    toggle.style.opacity = '1';
+                    toggle.style.visibility = 'visible';
+                }
+                const indicator = document.getElementById('statusIndicator');
+                if (indicator) {
+                    indicator.style.display = 'block';
+                    indicator.style.opacity = '1';
+                    indicator.style.visibility = 'visible';
+                }
             } else {
-                // Hide gear after closing settings
-                window.gearHideTimer = setTimeout(() => {
-                    container.classList.remove('show-settings');
-                }, 1000);
+                // ✅ CHANGE THIS: Remove timeout, hide immediately
+                container.classList.remove('show-settings');
+                // Force hide gear and indicator when settings are closed
+                if (toggle) {
+                    toggle.style.display = 'none';
+                    toggle.style.opacity = '0';
+                    toggle.style.visibility = 'hidden';
+                }
+                const indicator = document.getElementById('statusIndicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                    indicator.style.opacity = '0';
+                    indicator.style.visibility = 'hidden';
+                }
             }
         }
 
@@ -744,11 +823,22 @@
                 } else if (autoClickThrough && isGameActive) {
                     ctBtn.textContent = 'CT Auto';
                 }
-                if (toggle) toggle.style.display = 'none';
+                // Force hide gear and indicator in click-through mode
+                if (toggle) {
+                    toggle.style.display = 'none';
+                    toggle.style.opacity = '0';
+                    toggle.style.visibility = 'hidden';
+                }
+                const indicator = document.getElementById('statusIndicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                    indicator.style.opacity = '0';
+                    indicator.style.visibility = 'hidden';
+                }
             } else {
                 container.classList.remove('click-through');
                 ctBtn.textContent = 'CT Off';
-                if (toggle) toggle.style.display = 'flex';
+                // Don't automatically show gear/indicator here - let showSettingsGear() control it
             }
             ctBtn.classList.toggle('active', effectiveClickThrough);
         }
