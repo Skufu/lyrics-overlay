@@ -515,7 +515,7 @@ func main() {
 
 	// Preload config to determine startup options (e.g., disable resize)
 	preConfig, _ := config.New()
-	disableResizeAtStartup := false
+	disableResizeAtStartup := true // Default to disabled resize
 	if preConfig != nil {
 		cfg := preConfig.Get()
 		disableResizeAtStartup = cfg.Overlay.ResizeLocked
@@ -524,8 +524,8 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
-		Width:  600,
-		Height: 160,
+		Width:  400,
+		Height: 250,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

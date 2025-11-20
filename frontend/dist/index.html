@@ -69,6 +69,8 @@
             position: relative;
             overflow: hidden;
             min-height: 60px;
+            cursor: pointer; /* ADD THIS - shows it's clickable */
+            padding: 10px; /* ADD THIS - larger click area */
         }
 
         .current-line {
@@ -130,6 +132,7 @@
             border-radius: 50%;
             background: #ff4444;
             transition: background 0.3s ease;
+            pointer-events: none; /* ADD THIS - allows clicks to pass through */
         }
 
         .status-indicator.playing {
@@ -142,17 +145,17 @@
             50% { opacity: 0.5; }
         }
 
-        /* Settings toggle (gear) */
+        /* Settings toggle - COMPLETELY hidden until lyrics clicked */
         .settings-toggle {
             position: absolute;
             top: 8px;
             left: 10px;
             width: 28px;
             height: 28px;
-            display: flex;
+            display: none; /* Completely hidden */
             align-items: center;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.15);
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -161,12 +164,22 @@
             line-height: 1;
             -webkit-app-region: no-drag;
             z-index: 200;
-            transition: background 0.2s ease, opacity 0.2s ease;
-            opacity: 0.6;
-            pointer-events: auto;
+            transition: all 0.2s ease;
         }
-        .settings-toggle:hover { opacity: 1; background: rgba(255, 255, 255, 0.2); }
-        .settings-toggle.active { background: #44ff44; opacity: 1; }
+
+        .settings-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .settings-toggle.active {
+            background: rgba(29, 185, 84, 0.8);
+        }
+
+        /* Only show when lyrics are clicked */
+        .overlay-container.show-settings .settings-toggle {
+            display: flex; /* Make visible */
+        }
 
         /* Settings panel */
         .settings-panel {
@@ -381,7 +394,7 @@
             <button class="expand-btn" onclick="toggleMinimize()">Expand</button>
         </div>
 
-        <div class="lyrics-display">
+        <div class="lyrics-display" onclick="showSettingsGear()">
             <div class="current-line" id="currentLine">Starting SpotLy...</div>
             <div class="next-line" id="nextLine">Connecting to Spotify...</div>
         </div>
@@ -393,8 +406,6 @@
                 <div class="settings-row">
                     <button class="control-btn" id="minBtn" onclick="toggleMinimize()" title="Minimize overlay">Minimize</button>
                     <button class="control-btn" id="lockBtn" onclick="toggleLock()" title="Lock window position">Lock</button>
-                    <button class="control-btn" id="resizeBtn" onclick="toggleResizeLock()" title="Disable window resizing">Resize On</button>
-                    <button class="control-btn" id="bgBtn" onclick="toggleBackground()" title="Toggle background opacity">BG Off</button>
                 </div>
             </div>
 
@@ -449,7 +460,6 @@
         let currentFontSize = 18;
         let isAuthenticated = false;
         let isLocked = false;
-        let bgEnabled = false; // false = fully transparent background (default); true = blurred card
         let dragging = false;
         let dragMoved = false;
         let swallowNextClick = false;
@@ -460,7 +470,6 @@
         let isGameActive = false;
         let gameDetectionTimer = null;
         let settingsOpen = false;
-        let resizeLocked = false;
 
         // Initialize app
         window.addEventListener('DOMContentLoaded', async () => {
@@ -472,7 +481,6 @@
             checkAuthStatus();
             startLyricsUpdater();
             applyLockState();
-            applyBackgroundState();
             applyAutoClickThroughState();
             applyMinimizeState();
 
@@ -493,34 +501,17 @@
                 if (!panel || panel.classList.contains('hidden')) return;
                 if (e.target === panel || panel.contains(e.target) || e.target === toggle) return;
                 panel.classList.add('hidden');
+                settingsOpen = false;
+                // Hide gear when settings close
+                const container = document.getElementById('overlayContainer');
+                window.gearHideTimer = setTimeout(() => {
+                    container.classList.remove('show-settings');
+                }, 1000);
             });
-            // Hide gear after short inactivity when not interacting (but keep at 0.6 opacity)
-            let hideTimer = null;
-            const hideGear = () => {
-                const gear = document.getElementById('settingsToggle');
-                if (gear && !settingsOpen) gear.style.opacity = '0.6';
-            };
-            const showGear = () => {
-                const gear = document.getElementById('settingsToggle');
-                if (gear) gear.style.opacity = '1';
-                if (hideTimer) clearTimeout(hideTimer);
-                hideTimer = setTimeout(hideGear, 1500);
-            };
-            container.addEventListener('mouseenter', showGear);
-            container.addEventListener('mousemove', showGear);
-            container.addEventListener('mouseleave', hideGear);
             applyClickThroughState();
             
             // Start game detection
             startGameDetection();
-            // Load initial resize lock state
-            try {
-                const cfg = await window.go?.main?.App?.GetOverlayConfig?.();
-                if (cfg && typeof cfg.resize_locked === 'boolean') {
-                    resizeLocked = cfg.resize_locked;
-                    applyResizeLockState();
-                }
-            } catch {}
         });
 
         // Check authentication status
@@ -544,15 +535,49 @@
         function showAuthModal() {
             document.getElementById('authModal').classList.add('show');
         }
-        // Settings
+        // Show settings gear when lyrics are clicked
+        function showSettingsGear() {
+            const container = document.getElementById('overlayContainer');
+            container.classList.add('show-settings');
+
+            // Hide gear after 3 seconds of inactivity
+            clearTimeout(window.gearHideTimer);
+            window.gearHideTimer = setTimeout(() => {
+                if (!settingsOpen) { // Don't hide if settings panel is open
+                    container.classList.remove('show-settings');
+                }
+            }, 3000);
+        }
+
+        // Hide gear when window loses focus
+        window.addEventListener('blur', () => {
+            if (!settingsOpen) {
+                const container = document.getElementById('overlayContainer');
+                container.classList.remove('show-settings');
+                clearTimeout(window.gearHideTimer);
+            }
+        });
+
+        // Update toggleSettings to manage visibility
         function toggleSettings() {
             const panel = document.getElementById('settingsPanel');
             const toggle = document.getElementById('settingsToggle');
+            const container = document.getElementById('overlayContainer');
+
             if (!panel) return;
             settingsOpen = !settingsOpen;
             panel.classList.toggle('hidden', !settingsOpen);
-            if (toggle) {
-                toggle.classList.toggle('active', settingsOpen);
+            toggle.classList.toggle('active', settingsOpen);
+
+            // Keep gear visible when settings are open
+            if (settingsOpen) {
+                container.classList.add('show-settings');
+                clearTimeout(window.gearHideTimer);
+            } else {
+                // Hide gear after closing settings
+                window.gearHideTimer = setTimeout(() => {
+                    container.classList.remove('show-settings');
+                }, 1000);
             }
         }
 
@@ -696,25 +721,6 @@
             lockBtn.classList.toggle('active', isLocked);
         }
 
-        // Toggle background between blurred card and fully transparent
-        function toggleBackground() {
-            bgEnabled = !bgEnabled;
-            applyBackgroundState();
-        }
-
-        function applyBackgroundState() {
-            const container = document.getElementById('overlayContainer');
-            const bgBtn = document.getElementById('bgBtn');
-            if (!container || !bgBtn) return;
-            if (bgEnabled) {
-                container.classList.add('has-background');
-                bgBtn.textContent = 'BG On';
-            } else {
-                container.classList.remove('has-background');
-                bgBtn.textContent = 'BG Off';
-            }
-            bgBtn.classList.toggle('active', bgEnabled);
-        }
 
         // Click-through toggle
         function toggleClickThrough() {
@@ -774,37 +780,6 @@
             autoCtBtn.classList.toggle('active', autoClickThrough);
         }
 
-        // Resize lock
-        function applyResizeLockState() {
-            const btn = document.getElementById('resizeBtn');
-            if (btn) {
-                btn.textContent = resizeLocked ? 'Resize Off' : 'Resize On';
-                btn.classList.toggle('active', resizeLocked);
-            }
-            try {
-                if (resizeLocked) {
-                    const sizePromise = window.runtime?.WindowGetSize?.();
-                    if (sizePromise && typeof sizePromise.then === 'function') {
-                        sizePromise.then(sz => {
-                            if (!sz) return;
-                            window.runtime?.WindowSetMinSize?.(sz.w, sz.h);
-                            window.runtime?.WindowSetMaxSize?.(sz.w, sz.h);
-                        });
-                    }
-                } else {
-                    window.runtime?.WindowSetMinSize?.(0, 0);
-                    window.runtime?.WindowSetMaxSize?.(0, 0);
-                }
-            } catch {}
-        }
-
-        async function toggleResizeLock() {
-            resizeLocked = !resizeLocked;
-            applyResizeLockState();
-            try {
-                await window.go?.main?.App?.UpdateOverlayConfig?.({ resize_locked: resizeLocked });
-            } catch {}
-        }
 
         // Game detection
         function startGameDetection() {
@@ -860,7 +835,7 @@
             if (isLocked) return;
             if (e.target.closest('.settings-panel') || e.target.closest('.settings-toggle')) return; // don't start drag from settings UI
             // Avoid starting drag from a thin resize gutter area near edges
-            const edgeMargin = resizeLocked ? 0 : 8;
+            const edgeMargin = 8;
             const rect = document.getElementById('overlayContainer').getBoundingClientRect();
             if (
                 e.clientX - rect.left < edgeMargin ||
