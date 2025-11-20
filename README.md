@@ -24,6 +24,13 @@ A personal-use desktop app that shows time-synced or plain text lyrics in an alw
 - Enhanced UI controls and settings persistence
 - Cross-platform support (macOS/Linux)
 
+## Quick Install (Windows)
+
+1. Download the latest `spotly.exe` from the GitHub Releases page.
+2. Run it. On first run, click "Connect with Spotify".
+3. If prompted for configuration, click "Open config" in the app, paste your Spotify Client ID and Secret, save, then click "Restart App".
+   - The config file is created at `~/.spotly/config.json` (e.g., `C:\Users\YOU\.spotly\config.json`).
+
 ## Setup Instructions
 
 ### Prerequisites
@@ -33,7 +40,7 @@ A personal-use desktop app that shows time-synced or plain text lyrics in an alw
 3. **Genius API Token** (optional) - Get from [Genius API Clients](https://genius.com/api-clients)
    - Not required. LRCLIB is used by default and often returns synced lyrics.
 
-### Installation
+### Installation (from source)
 
 1. **Clone and setup:**
    ```bash

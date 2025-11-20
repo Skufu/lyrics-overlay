@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 	"unsafe"
@@ -364,6 +365,27 @@ func (a *App) GetOverlayConfig() config.OverlayConfig {
 		return config.OverlayConfig{}
 	}
 	return a.overlay.GetOverlayConfig()
+}
+
+// GetConfigPath returns the full path to the user's config file
+func (a *App) GetConfigPath() string {
+	if a.config == nil {
+		return ""
+	}
+	return a.config.Path()
+}
+
+// OpenConfig opens the user's config file location in Explorer (Windows) and returns the path
+func (a *App) OpenConfig() (string, error) {
+	if a.config == nil {
+		return "", fmt.Errorf("config service not available")
+	}
+	path := a.config.Path()
+	// Best-effort: ensure the file exists on disk
+	_ = a.config.Save()
+	// Windows: open Explorer highlighting the config file
+	_ = exec.Command("explorer.exe", "/select,", path).Start()
+	return path, nil
 }
 
 // GetActiveWindow returns the title of the currently active window

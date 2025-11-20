@@ -72,10 +72,14 @@ func New() (*Service, error) {
 		config:   getDefaultConfig(),
 	}
 
-	// Load existing config if it exists
+	// Load existing config if it exists, otherwise create a default config file
 	if _, err := os.Stat(configPath); err == nil {
 		if err := service.Load(); err != nil {
 			return nil, fmt.Errorf("failed to load config: %w", err)
+		}
+	} else {
+		if err := service.Save(); err != nil {
+			return nil, fmt.Errorf("failed to create default config: %w", err)
 		}
 	}
 
@@ -130,6 +134,11 @@ func (s *Service) Save() error {
 	}
 
 	return os.WriteFile(s.filePath, data, 0644)
+}
+
+// Path returns the full path to the configuration file
+func (s *Service) Path() string {
+    return s.filePath
 }
 
 // UpdateOverlay updates overlay configuration

@@ -98,6 +98,12 @@
 
         .status-indicator.playing {
             background: #44ff44;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         /* Settings toggle (gear) */
@@ -120,13 +126,11 @@
             -webkit-app-region: no-drag;
             z-index: 200;
             transition: background 0.2s ease, opacity 0.2s ease;
-            opacity: 0;
-            pointer-events: none;
+            opacity: 0.6;
+            pointer-events: auto;
         }
-        .settings-toggle:hover { background: rgba(255, 255, 255, 0.2); }
-
-        /* Reveal gear only on hover/focus interaction */
-        .overlay-container:hover .settings-toggle { opacity: 1; pointer-events: auto; }
+        .settings-toggle:hover { opacity: 1; background: rgba(255, 255, 255, 0.2); }
+        .settings-toggle.active { background: #44ff44; opacity: 1; }
 
         /* Settings panel */
         .settings-panel {
@@ -142,6 +146,20 @@
             min-width: 280px;
         }
         .settings-panel.hidden { display: none; }
+        .settings-section {
+            margin-bottom: 12px;
+        }
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+        .settings-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         .settings-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
         .control-btn {
@@ -160,9 +178,79 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        .control-btn.active {
+            background: #44ff44;
+            color: #000;
+        }
+
+        .shortcuts-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .shortcuts-hint kbd {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            padding: 1px 4px;
+            font-size: 10px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
         .hidden {
             opacity: 0;
             pointer-events: none;
+        }
+
+        /* Minimized state */
+        .overlay-container.minimized {
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .overlay-container.minimized .lyrics-display {
+            display: none;
+        }
+
+        .overlay-container.minimized .status-indicator {
+            display: none;
+        }
+
+        .minimized-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .minimized-bar .app-name {
+            opacity: 0.8;
+        }
+
+        .minimized-bar .expand-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .minimized-bar .expand-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
         }
 
         /* Authentication modal */
@@ -251,7 +339,12 @@
 <body>
     <div class="overlay-container" id="overlayContainer">
         <div class="status-indicator" id="statusIndicator"></div>
-        
+
+        <div class="minimized-bar" id="minimizedBar" style="display: none;">
+            <span class="app-name">🎵 SpotLy</span>
+            <button class="expand-btn" onclick="toggleMinimize()">Expand</button>
+        </div>
+
         <div class="lyrics-display">
             <div class="current-line" id="currentLine">Starting SpotLy...</div>
             <div class="next-line" id="nextLine">Connecting to Spotify...</div>
@@ -259,17 +352,42 @@
         
         <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Settings">⚙</button>
         <div class="settings-panel hidden" id="settingsPanel">
-            <div class="settings-row">
-                <button class="control-btn" id="visBtn" onclick="toggleVisibility()">Hide</button>
-                <button class="control-btn" id="lockBtn" onclick="toggleLock()">Lock</button>
-                <button class="control-btn" id="resizeBtn" onclick="toggleResizeLock()" title="Disable window resizing">Resize On</button>
-                <button class="control-btn" id="bgBtn" onclick="toggleBackground()" title="Toggle background opacity">BG</button>
-                <button class="control-btn" id="ctBtn" onclick="toggleClickThrough()" title="Manual click-through">CT</button>
-                <button class="control-btn" id="autoCtBtn" onclick="toggleAutoClickThrough()" title="Auto click-through for games">Auto On</button>
-                <button class="control-btn" onclick="adjustOpacity()">Opacity</button>
-                <button class="control-btn" onclick="adjustFontSize()">Font</button>
-                <button class="control-btn" onclick="refreshNow()">Refresh</button>
-                <button class="control-btn" onclick="showDebugInfo()">Debug</button>
+            <div class="settings-section">
+                <div class="settings-label">Display</div>
+                <div class="settings-row">
+                    <button class="control-btn" id="minBtn" onclick="toggleMinimize()" title="Minimize overlay">Minimize</button>
+                    <button class="control-btn" id="lockBtn" onclick="toggleLock()" title="Lock window position">Lock</button>
+                    <button class="control-btn" id="resizeBtn" onclick="toggleResizeLock()" title="Disable window resizing">Resize On</button>
+                    <button class="control-btn" id="bgBtn" onclick="toggleBackground()" title="Toggle background opacity">BG Off</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Appearance</div>
+                <div class="settings-row">
+                    <button class="control-btn" onclick="adjustOpacity()" title="Cycle opacity levels">Opacity</button>
+                    <button class="control-btn" onclick="adjustFontSize()" title="Cycle font sizes">Font</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Click-Through</div>
+                <div class="settings-row">
+                    <button class="control-btn" id="ctBtn" onclick="toggleClickThrough()" title="Manual click-through">CT Off</button>
+                    <button class="control-btn" id="autoCtBtn" onclick="toggleAutoClickThrough()" title="Auto click-through for games">Auto Off</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label">Actions</div>
+                <div class="settings-row">
+                    <button class="control-btn" onclick="refreshNow()" title="Force refresh track and lyrics">Refresh</button>
+                    <button class="control-btn" onclick="showDebugInfo()" title="Show debug information">Debug</button>
+                </div>
+            </div>
+
+            <div class="shortcuts-hint">
+                💡 Shortcuts: <kbd>Ctrl+H</kbd> Minimize • <kbd>Ctrl+O</kbd> Opacity • <kbd>Ctrl+F</kbd> Font
             </div>
         </div>
     </div>
@@ -290,7 +408,7 @@
 
     <script>
         // Global state
-        let isVisible = true;
+        let isMinimized = false;
         let currentOpacity = 0.9;
         let currentFontSize = 18;
         let isAuthenticated = false;
@@ -320,7 +438,7 @@
             applyLockState();
             applyBackgroundState();
             applyAutoClickThroughState();
-            applyVisibilityState();
+            applyMinimizeState();
 
             const container = document.getElementById('overlayContainer');
             container.addEventListener('mousedown', onDragStart);
@@ -340,11 +458,11 @@
                 if (e.target === panel || panel.contains(e.target) || e.target === toggle) return;
                 panel.classList.add('hidden');
             });
-            // Hide gear after short inactivity when not interacting
+            // Hide gear after short inactivity when not interacting (but keep at 0.6 opacity)
             let hideTimer = null;
             const hideGear = () => {
                 const gear = document.getElementById('settingsToggle');
-                if (gear) gear.style.opacity = '0';
+                if (gear && !settingsOpen) gear.style.opacity = '0.6';
             };
             const showGear = () => {
                 const gear = document.getElementById('settingsToggle');
@@ -393,9 +511,13 @@
         // Settings
         function toggleSettings() {
             const panel = document.getElementById('settingsPanel');
+            const toggle = document.getElementById('settingsToggle');
             if (!panel) return;
             settingsOpen = !settingsOpen;
             panel.classList.toggle('hidden', !settingsOpen);
+            if (toggle) {
+                toggle.classList.toggle('active', settingsOpen);
+            }
         }
 
 
@@ -460,7 +582,10 @@
                             <li>Get these from <a href="https://developer.spotify.com/dashboard" target="_blank" style="color: #1db954;">Spotify Dashboard</a></li>
                             <li>Add redirect URI: <code>http://127.0.0.1:8080/callback</code></li>
                         </ol>
-                        <button class="auth-btn" onclick="location.reload()">Restart App</button>
+                        <div style="display:flex; gap:8px; justify-content:center;">
+                          <button class="auth-btn" onclick="openConfig()">Open config</button>
+                          <button class="auth-btn" onclick="location.reload()">Restart App</button>
+                        </div>
                     `;
                 }
             }
@@ -479,6 +604,24 @@
             }
         }
 
+        // Open config file/folder via backend
+        async function openConfig() {
+            try {
+                const path = await window.go?.main?.App?.OpenConfig?.();
+                if (path) {
+                    const authContent = document.querySelector('.auth-content');
+                    const safePath = path.replace(/\\/g, '\\\\');
+                    const note = document.createElement('p');
+                    note.style.fontSize = '12px';
+                    note.style.opacity = '0.8';
+                    note.textContent = `Opened config: ${path}`;
+                    if (authContent) authContent.appendChild(note);
+                }
+            } catch (e) {
+                console.error('Failed to open config:', e);
+            }
+        }
+
         // Lock/unlock dragging of the window
         async function toggleLock() {
             isLocked = !isLocked;
@@ -492,7 +635,8 @@
             const container = document.getElementById('overlayContainer');
             const lockBtn = document.getElementById('lockBtn');
             if (!container || !lockBtn) return;
-            lockBtn.textContent = isLocked ? 'Unlock' : 'Lock';
+            lockBtn.textContent = isLocked ? '🔒 Locked' : 'Lock';
+            lockBtn.classList.toggle('active', isLocked);
         }
 
         // Toggle background between blurred card and fully transparent
@@ -510,8 +654,9 @@
                 bgBtn.textContent = 'BG On';
             } else {
                 container.classList.remove('has-background');
-                bgBtn.textContent = 'BG';
+                bgBtn.textContent = 'BG Off';
             }
+            bgBtn.classList.toggle('active', bgEnabled);
         }
 
         // Click-through toggle
@@ -525,10 +670,10 @@
             const ctBtn = document.getElementById('ctBtn');
             const toggle = document.getElementById('settingsToggle');
             if (!container || !ctBtn) return;
-            
+
             // Determine effective click-through state (manual or auto)
             const effectiveClickThrough = clickThrough || (autoClickThrough && isGameActive);
-            
+
             if (effectiveClickThrough) {
                 container.classList.add('click-through');
                 if (clickThrough) {
@@ -536,12 +681,13 @@
                 } else if (autoClickThrough && isGameActive) {
                     ctBtn.textContent = 'CT Auto';
                 }
-                if (toggle) toggle.style.opacity = '0';
+                if (toggle) toggle.style.display = 'none';
             } else {
                 container.classList.remove('click-through');
-                ctBtn.textContent = 'CT';
-                // allow gear to appear via hover timers
+                ctBtn.textContent = 'CT Off';
+                if (toggle) toggle.style.display = 'flex';
             }
+            ctBtn.classList.toggle('active', effectiveClickThrough);
         }
 
         // Auto click-through toggle
@@ -567,13 +713,17 @@
         function applyAutoClickThroughState() {
             const autoCtBtn = document.getElementById('autoCtBtn');
             if (!autoCtBtn) return;
-            autoCtBtn.textContent = autoClickThrough ? 'Auto On' : 'Auto';
+            autoCtBtn.textContent = autoClickThrough ? 'Auto On' : 'Auto Off';
+            autoCtBtn.classList.toggle('active', autoClickThrough);
         }
 
         // Resize lock
         function applyResizeLockState() {
             const btn = document.getElementById('resizeBtn');
-            if (btn) btn.textContent = resizeLocked ? 'Resize Off' : 'Resize On';
+            if (btn) {
+                btn.textContent = resizeLocked ? 'Resize Off' : 'Resize On';
+                btn.classList.toggle('active', resizeLocked);
+            }
             try {
                 if (resizeLocked) {
                     const sizePromise = window.runtime?.WindowGetSize?.();
@@ -810,24 +960,31 @@
         }
 
         // Control functions
-        async function toggleVisibility() {
-            isVisible = !isVisible;
+        async function toggleMinimize() {
+            isMinimized = !isMinimized;
             const container = document.getElementById('overlayContainer');
-            if (isVisible) {
-                container.classList.remove('hidden');
+            const minimizedBar = document.getElementById('minimizedBar');
+
+            if (isMinimized) {
+                container.classList.add('minimized');
+                minimizedBar.style.display = 'flex';
             } else {
-                container.classList.add('hidden');
+                container.classList.remove('minimized');
+                minimizedBar.style.display = 'none';
             }
-            applyVisibilityState();
+            applyMinimizeState();
             try {
                 // Update backend config visibility (also persisted)
-                await window.go?.main?.App?.UpdateOverlayConfig?.({ visible: isVisible });
+                await window.go?.main?.App?.UpdateOverlayConfig?.({ minimized: isMinimized });
             } catch {}
         }
 
-        function applyVisibilityState() {
-            const btn = document.querySelector('.controls button');
-            if (btn) btn.textContent = isVisible ? 'Hide' : 'Show';
+        function applyMinimizeState() {
+            const btn = document.getElementById('minBtn');
+            if (btn) {
+                btn.textContent = isMinimized ? 'Expand' : 'Minimize';
+                btn.classList.toggle('active', isMinimized);
+            }
         }
 
         async function adjustOpacity() {
@@ -851,7 +1008,7 @@
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'h') {
                 e.preventDefault();
-                toggleVisibility();
+                toggleMinimize();
             } else if (e.ctrlKey && e.key === 'o') {
                 e.preventDefault();
                 adjustOpacity();
