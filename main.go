@@ -182,8 +182,8 @@ func (a *App) GetDisplayInfo() *overlay.DisplayInfo {
 	// Add debugging info if no track is playing
 	if info.CurrentLine == "No track playing" && a.auth != nil && a.auth.IsAuthenticated() {
 		if a.spotify != nil && a.spotify.IsPolling() {
-			info.CurrentLine = "🔍 Spotify connected, polling for music..."
-			info.NextLine = "Make sure Spotify is playing and not private session"
+			info.CurrentLine = "🎧 Ready and waiting"
+			info.NextLine = "Start playing music in Spotify"
 		} else {
 			info.CurrentLine = "⚠️ Spotify connected but polling stopped"
 			info.NextLine = "Try restarting the app"
@@ -524,8 +524,8 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
-		Width:  400,
-		Height: 320, // Increased to fit full settings panel
+		Width:  450,
+		Height: 490, // Increased height for better modal spacing
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

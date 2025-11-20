@@ -1,7 +1,6 @@
 package overlay
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -177,8 +176,8 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 	}
 
 	return &DisplayInfo{
-		CurrentLine: fmt.Sprintf("🎵 %s - %s", s.currentTrack.Artists[0], s.currentTrack.Name),
-		NextLine:    "No lyrics available",
+		CurrentLine: "No lyrics available",
+		NextLine:    "Enjoying the instrumental vibes 🎸",
 		IsPlaying:   s.currentTrack.IsPlaying,
 	}
 }
