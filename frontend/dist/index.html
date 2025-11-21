@@ -517,6 +517,271 @@
             .auth-features { padding: 12px; margin: 16px 0; }
             .auth-icon { font-size: 36px; }
         }
+
+        /* Setup Wizard Modal */
+        .setup-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            pointer-events: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .setup-modal.show {
+            display: flex;
+            pointer-events: auto;
+        }
+        .setup-content {
+            background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(20, 20, 20, 0.98) 100%);
+            padding: 32px 36px 40px;
+            border-radius: 24px;
+            width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            -webkit-app-region: no-drag;
+            animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+        .wizard-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .wizard-header h2 {
+            color: #1db954;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .wizard-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+        /* Setup Steps */
+        .setup-steps {
+            position: relative;
+        }
+        .setup-step {
+            display: none;
+        }
+        .setup-step.active {
+            display: block;
+            animation: stepSlide 0.4s ease;
+        }
+        @keyframes stepSlide {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #1db954, #1ed760);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+        .step-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .step-content {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .step-content > p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        /* Copy Box */
+        .copy-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(29, 185, 84, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .copy-box:hover {
+            background: rgba(29, 185, 84, 0.1);
+            border-color: rgba(29, 185, 84, 0.5);
+            transform: translateY(-2px);
+        }
+        .copy-box code {
+            color: #1db954;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .copy-icon {
+            font-size: 20px;
+            transition: transform 0.2s ease;
+        }
+        .copy-box:active .copy-icon {
+            transform: scale(1.2);
+        }
+        /* Step Instructions */
+        .step-instructions {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 20px 0;
+        }
+        .step-instructions ol {
+            margin: 0;
+            padding-left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .step-instructions li {
+            padding: 6px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        /* Input Styling */
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .setup-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .setup-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #1db954;
+            box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.1);
+        }
+        .setup-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .password-input-wrapper {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+        }
+        .toggle-password:hover {
+            opacity: 1;
+        }
+        .input-hint {
+            display: block;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 6px;
+        }
+        /* Wizard Buttons */
+        .wizard-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .wizard-next-btn,
+        .wizard-back-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .wizard-next-btn {
+            background: rgba(29, 185, 84, 0.2);
+            color: #1db954;
+            border: 1px solid rgba(29, 185, 84, 0.4);
+            flex: 1;
+        }
+        .wizard-next-btn:hover {
+            background: rgba(29, 185, 84, 0.3);
+            transform: translateY(-2px);
+        }
+        .wizard-back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .wizard-back-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        /* Progress Bar */
+        .wizard-progress {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1db954, #1ed760);
+            width: 33.33%;
+            transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .progress-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .setup-note {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            margin-top: 16px;
+        }
     </style>
 </head>
 <body>
@@ -596,6 +861,115 @@
             </button>
 
             <p class="auth-note">Opens browser for secure login</p>
+        </div>
+    </div>
+
+    <!-- Setup Wizard Modal -->
+    <div class="setup-modal" id="setupModal">
+        <div class="setup-content">
+            <button class="auth-close" onclick="closeSetup()">×</button>
+            
+            <div class="wizard-header">
+                <div class="auth-icon">🎯</div>
+                <h2>Setup SpotLy</h2>
+                <p>Let's connect your Spotify account in 3 easy steps</p>
+            </div>
+            
+            <div class="setup-steps" id="setupSteps">
+                <!-- Step 1: Create Spotify App -->
+                <div class="setup-step active" data-step="1">
+                    <div class="step-indicator">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Create Spotify App</div>
+                    </div>
+                    <div class="step-content">
+                        <p>First, you need to create a Spotify Developer app to get API credentials.</p>
+                        <button class="auth-btn" onclick="openSpotifyDashboard()">
+                            Open Spotify Dashboard
+                        </button>
+                        <div class="step-instructions">
+                            <ol>
+                                <li>Click the button above to open Spotify Developer Dashboard</li>
+                                <li>Log in with your Spotify account</li>
+                                <li>Click "Create App"</li>
+                                <li>Give it any name (e.g., "SpotLy")</li>
+                                <li>Add a description (optional)</li>
+                                <li>Click "Create"</li>
+                            </ol>
+                        </div>
+                        <button class="wizard-next-btn" onclick="nextStep()">Next Step →</button>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Configure Redirect URI -->
+                <div class="setup-step" data-step="2">
+                    <div class="step-indicator">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Add Redirect URI</div>
+                    </div>
+                    <div class="step-content">
+                        <p>In your Spotify app settings, add this Redirect URI:</p>
+                        <div class="copy-box" onclick="copyRedirectURI()">
+                            <code>http://127.0.0.1:8080/callback</code>
+                            <span class="copy-icon" id="copyIcon">📋</span>
+                        </div>
+                        <div class="step-instructions">
+                            <ol>
+                                <li>In your Spotify app, click "Edit Settings"</li>
+                                <li>Find the "Redirect URIs" section</li>
+                                <li>Click the copy button above to copy the URI</li>
+                                <li>Paste it into the Redirect URIs field</li>
+                                <li>Click "Add"</li>
+                                <li>Click "Save" at the bottom</li>
+                            </ol>
+                        </div>
+                        <div class="wizard-buttons">
+                            <button class="wizard-back-btn" onclick="prevStep()">← Back</button>
+                            <button class="wizard-next-btn" onclick="nextStep()">Next Step →</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Enter Credentials -->
+                <div class="setup-step" data-step="3">
+                    <div class="step-indicator">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Enter Credentials</div>
+                    </div>
+                    <div class="step-content">
+                        <p>Copy your Client ID and Client Secret from Spotify and paste them here:</p>
+                        
+                        <div class="input-group">
+                            <label>Client ID</label>
+                            <input type="text" id="clientId" placeholder="Paste Client ID here" class="setup-input">
+                            <span class="input-hint">Found in your Spotify app's "Basic Information" section</span>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Client Secret</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="clientSecret" placeholder="Paste Client Secret here" class="setup-input">
+                                <button class="toggle-password" onclick="togglePasswordVisibility()">👁️</button>
+                            </div>
+                            <span class="input-hint">Click "View client secret" in Spotify, then copy it</span>
+                        </div>
+                        
+                        <div class="wizard-buttons">
+                            <button class="wizard-back-btn" onclick="prevStep()">← Back</button>
+                            <button class="auth-btn" onclick="saveAndConnect()">Save & Connect</button>
+                        </div>
+                        
+                        <p class="setup-note">Your credentials are stored securely on your computer only.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="wizard-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-text">Step <span id="currentStep">1</span> of 3</span>
+            </div>
         </div>
     </div>
 
@@ -706,20 +1080,176 @@
             startGameDetection();
         });
 
+        // Global wizard state
+        let currentWizardStep = 1;
+
+        // Show setup wizard
+        function showSetupWizard() {
+            const modal = document.getElementById('setupModal');
+            if (modal) {
+                modal.classList.add('show');
+                currentWizardStep = 1;
+                showWizardStep(1);
+                updateProgress();
+            }
+            // Hide auth modal if it's open
+            hideAuthModal();
+        }
+
+        // Close setup wizard
+        function closeSetup() {
+            const modal = document.getElementById('setupModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        // Navigate wizard steps
+        function nextStep() {
+            if (currentWizardStep < 3) {
+                currentWizardStep++;
+                showWizardStep(currentWizardStep);
+                updateProgress();
+            }
+        }
+
+        function prevStep() {
+            if (currentWizardStep > 1) {
+                currentWizardStep--;
+                showWizardStep(currentWizardStep);
+                updateProgress();
+            }
+        }
+
+        function showWizardStep(step) {
+            document.querySelectorAll('.setup-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            const targetStep = document.querySelector(`.setup-step[data-step="${step}"]`);
+            if (targetStep) {
+                targetStep.classList.add('active');
+            }
+        }
+
+        function updateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            const currentStepText = document.getElementById('currentStep');
+            
+            if (progressFill) {
+                progressFill.style.width = `${(currentWizardStep / 3) * 100}%`;
+            }
+            if (currentStepText) {
+                currentStepText.textContent = currentWizardStep;
+            }
+        }
+
+        // Open Spotify Dashboard
+        function openSpotifyDashboard() {
+            window.open('https://developer.spotify.com/dashboard', '_blank');
+        }
+
+        // Copy redirect URI to clipboard
+        function copyRedirectURI() {
+            const uri = 'http://127.0.0.1:8080/callback';
+            navigator.clipboard.writeText(uri).then(() => {
+                const copyIcon = document.getElementById('copyIcon');
+                if (copyIcon) {
+                    copyIcon.textContent = '✓';
+                    setTimeout(() => {
+                        copyIcon.textContent = '📋';
+                    }, 2000);
+                }
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Please copy manually: ' + uri);
+            });
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const input = document.getElementById('clientSecret');
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+
+        // Save credentials and connect
+        async function saveAndConnect() {
+            const clientId = document.getElementById('clientId').value.trim();
+            const clientSecret = document.getElementById('clientSecret').value.trim();
+            
+            if (!clientId || !clientSecret) {
+                alert('Please enter both Client ID and Client Secret');
+                return;
+            }
+            
+            try {
+                // Validate credentials format
+                await window.go?.main?.App?.ValidateCredentials?.(clientId, clientSecret);
+                
+                // Save to config
+                await window.go?.main?.App?.SaveSpotifyCredentials?.(clientId, clientSecret);
+                
+                // Show success message
+                const setupModal = document.getElementById('setupModal');
+                const setupContent = document.querySelector('.setup-content');
+                
+                if (setupContent) {
+                    setupContent.innerHTML = `
+                        <div class="auth-icon">✓</div>
+                        <h2 style="color: #1db954;">Setup Complete!</h2>
+                        <p>Your Spotify credentials have been saved successfully.</p>
+                        <button class="auth-btn" onclick="startConnection()">Connect to Spotify</button>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Failed to save credentials:', error);
+                alert('Error: ' + error.toString());
+            }
+        }
+
+        // Start Spotify connection after setup
+        async function startConnection() {
+            closeSetup();
+            showAuthModal();
+            // Auto-trigger auth flow
+            setTimeout(() => {
+                authenticateSpotify();
+            }, 500);
+        }
+
+        // Open config folder
+        async function openConfigFolder() {
+            try {
+                await window.go?.main?.App?.OpenConfigDirectory?.();
+            } catch (error) {
+                console.error('Failed to open config folder:', error);
+                alert('Could not open config folder: ' + error);
+            }
+        }
+
         // Check authentication status
         async function checkAuthStatus() {
             try {
-                // This will be connected to Go backend
                 const isAuth = await window.go?.main?.App?.IsAuthenticated?.() || false;
                 if (!isAuth) {
-                    showAuthModal();
+                    // Check if config has credentials
+                    const hasCredentials = await window.go?.main?.App?.HasCredentials?.();
+                    if (!hasCredentials) {
+                        // First time user - show setup wizard instead of auth modal
+                        showSetupWizard();
+                    } else {
+                        // Has credentials but not authenticated - show auth modal
+                        showAuthModal();
+                    }
                 } else {
                     hideAuthModal();
                     isAuthenticated = true;
                 }
             } catch (error) {
-                console.log('Auth check failed, showing auth modal');
-                showAuthModal();
+                console.log('Auth check failed, showing setup wizard');
+                showSetupWizard();
             }
         }
 
@@ -896,16 +1426,11 @@ function hideAuthModal() {
                         <button class="auth-close" onclick="closeAuthModal()">×</button>
                         <div class="auth-icon">⚙️</div>
                         <h2>Setup Required</h2>
-                        <p style="margin: 16px 0; font-size: 13px;">Configure Spotify API credentials</p>
-
-                        <div style="text-align: left; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin: 16px 0; font-size: 12px; line-height: 1.6;">
-                            <div>1. Open <code style="background: rgba(255,255,255,0.1); padding: 2px 4px;">config.json</code></div>
-                            <div>2. Get API keys from Spotify</div>
-                            <div>3. Add redirect URI</div>
-                            <div>4. Restart app</div>
-                        </div>
-
-                        <button class="auth-btn" onclick="location.reload()">Restart</button>
+                        <p>Spotify credentials not configured</p>
+                        <button class="auth-btn" onclick="showSetupWizard()">Start Setup Wizard</button>
+                        <button class="auth-btn" style="background: rgba(255,255,255,0.1); margin-top: 8px;" onclick="openConfigFolder()">
+                            Open Config Folder
+                        </button>
                     `;
                 } else {
                     authContent.innerHTML = `

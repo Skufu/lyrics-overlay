@@ -10,6 +10,9 @@ import (
 	"time"
 	"unsafe"
 
+	"path/filepath"
+	stdruntime "runtime"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -513,6 +516,75 @@ func (a *App) startClickThroughMonitor() {
 			}
 		}
 	}()
+}
+
+// OpenConfigDirectory opens the config folder in file explorer
+func (a *App) OpenConfigDirectory() error {
+	configDir := filepath.Dir(a.config.Path())
+	var cmd *exec.Cmd
+
+	switch stdruntime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", configDir)
+	case "darwin":
+		cmd = exec.Command("open", configDir)
+	case "linux":
+		cmd = exec.Command("xdg-open", configDir)
+	default:
+		return fmt.Errorf("unsupported platform")
+	}
+
+	return cmd.Start()
+}
+
+// SaveSpotifyCredentials saves credentials from the UI
+func (a *App) SaveSpotifyCredentials(clientID, clientSecret string) error {
+	if clientID == "" || clientSecret == "" {
+		return fmt.Errorf("client ID and secret are required")
+	}
+
+	cfg := a.config.Get()
+	cfg.SpotifyClientID = clientID
+	cfg.SpotifyClientSecret = clientSecret
+	cfg.RedirectURI = "http://127.0.0.1:8080/callback"
+	cfg.Port = 8080
+
+	if err := a.config.Save(); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	// Reinitialize auth service with new credentials
+	authSvc, err := auth.New(a.config)
+	if err != nil {
+		return fmt.Errorf("failed to initialize auth: %w", err)
+	}
+	a.auth = authSvc
+
+	return nil
+}
+
+// ValidateCredentials tests if the provided credentials work
+func (a *App) ValidateCredentials(clientID, clientSecret string) error {
+	if clientID == "" || clientSecret == "" {
+		return fmt.Errorf("credentials cannot be empty")
+	}
+
+	// Basic validation - check format
+	if len(clientID) < 32 {
+		return fmt.Errorf("client ID appears invalid (too short)")
+	}
+
+	if len(clientSecret) < 32 {
+		return fmt.Errorf("client secret appears invalid (too short)")
+	}
+
+	return nil
+}
+
+// HasCredentials checks if Spotify credentials are configured
+func (a *App) HasCredentials() bool {
+	cfg := a.config.Get()
+	return cfg.SpotifyClientID != "" && cfg.SpotifyClientSecret != ""
 }
 
 func main() {
