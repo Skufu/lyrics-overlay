@@ -93,7 +93,7 @@
             display: inline-block;
         }
         
-        /* Karaoke highlight effect */
+        /* Karaoke highlight effect - smooth linear sweep */
         .current-line.karaoke {
             background: linear-gradient(
                 90deg,
@@ -923,7 +923,7 @@
                         lastNextLine = newNext;
                     }
                     
-                    // Update karaoke progress
+                    // Update karaoke progress (smooth linear sweep)
                     if (currentEl && karaokeEnabled && info.is_playing && info.line_duration_ms > 0) {
                         const progress = Math.min(100, Math.max(0, (info.line_progress_ms / info.line_duration_ms) * 100));
                         currentEl.style.setProperty('--karaoke-progress', progress + '%');
