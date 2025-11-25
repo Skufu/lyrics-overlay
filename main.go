@@ -332,6 +332,32 @@ func (a *App) ToggleVisibility() bool {
 	return a.overlay.ToggleVisibility()
 }
 
+// ResizeWindow resizes the overlay window with smooth transition
+func (a *App) ResizeWindow(width, height int) error {
+	if a.ctx == nil {
+		return fmt.Errorf("context not available")
+	}
+
+	// Get current window position to maintain center point
+	x, y := runtime.WindowGetPosition(a.ctx)
+
+	// Calculate new position to keep window centered at same spot
+	// (optional - comment out if you want it to grow from top-left)
+	currentWidth, currentHeight := runtime.WindowGetSize(a.ctx)
+	deltaWidth := (currentWidth - width) / 2
+	deltaHeight := (currentHeight - height) / 2
+	newX := x + deltaWidth
+	newY := y + deltaHeight
+
+	// Set new size
+	runtime.WindowSetSize(a.ctx, width, height)
+
+	// Maintain center position (optional)
+	runtime.WindowSetPosition(a.ctx, newX, newY)
+
+	return nil
+}
+
 // UpdateOverlayConfig updates overlay configuration
 func (a *App) UpdateOverlayConfig(config map[string]interface{}) error {
 	if a.overlay == nil {
@@ -486,17 +512,28 @@ func (a *App) setOverlayClickThrough(enable bool) {
 	a.clickThrough = enable
 }
 
-// startClickThroughMonitor enables click-through when VALORANT is focused and disables otherwise
 func (a *App) startClickThroughMonitor() {
 	if a.stopClickMonitor != nil {
-		// already running
-		return
+		return // already running
 	}
 
 	a.stopClickMonitor = make(chan struct{})
+
+	// List of games that require click-through (lowercase)
+	gamesRequiringClickThrough := []string{
+		"valorant",
+		"league of legends",
+		"cs2",
+		"counter-strike",
+		"dota 2",
+		"overwatch",
+		"apex legends",
+	}
+
 	go func() {
-		ticker := time.NewTicker(500 * time.Millisecond)
+		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ticker.C:
@@ -504,14 +541,31 @@ func (a *App) startClickThroughMonitor() {
 				if err != nil {
 					continue
 				}
+
 				lower := strings.ToLower(active)
-				inValorant := strings.Contains(lower, "valorant")
-				if inValorant && !a.clickThrough {
-					a.setOverlayClickThrough(true)
-				} else if !inValorant && a.clickThrough {
+				isInGame := false
+
+				// Check if any game in the list is the active window
+				for _, game := range gamesRequiringClickThrough {
+					if strings.Contains(lower, game) {
+						isInGame = true
+						break
+					}
+				}
+
+				// Enable click-through (make unclickable) when in game
+				// Disable click-through (make clickable) when not in game
+				if isInGame && !a.clickThrough {
+					a.setOverlayClickThrough(true) // Make unclickable
+				} else if !isInGame && a.clickThrough {
+					a.setOverlayClickThrough(false) // Make clickable
+				}
+
+			case <-a.stopClickMonitor:
+				// Ensure click-through is disabled on shutdown so overlay is clickable
+				if a.clickThrough {
 					a.setOverlayClickThrough(false)
 				}
-			case <-a.stopClickMonitor:
 				return
 			}
 		}
@@ -602,8 +656,8 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "SpotLy Overlay",
-		Width:  450,
-		Height: 600, // Increased height for glass modal effect
+		Width:  600,
+		Height: 500, // Start with auth screen size (will resize to 120 after auth)
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

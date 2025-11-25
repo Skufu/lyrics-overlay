@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,28 +39,6 @@
             position: relative; /* anchor absolute children like controls/status */
         }
 
-        /* Background mode disabled: force full transparency regardless of state */
-        .overlay-container.has-background {
-            background: transparent !important;
-            backdrop-filter: none !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-
-        /* Controls should not add any dark background in transparent mode */
-        .overlay-container:not(.has-background) .controls {
-            background: transparent;
-            border-radius: 0;
-            padding: 0;
-            border: none;
-        }
-
-        /* Click-through mode: pass all mouse events to underlying apps */
-        .overlay-container.click-through {
-            pointer-events: none !important;
-        }
-        /* Remove legacy controls in click-through context */
-        .overlay-container.click-through .controls { display: none !important; }
 
         .lyrics-display {
             text-align: center;
@@ -90,35 +68,23 @@
             line-height: 1.2;
         }
 
-        /* Gaming-optimized slide animations */
-        @keyframes subtleSlideUp {
-            0% {
-                transform: translateY(8px);
-                opacity: 0;
-            }
-            100% {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        /* Fast slide-up animations */
+        @keyframes slideUp {
+            from { transform: translateY(6px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
-        @keyframes subtleSlideUpNext {
-            0% {
-                transform: translateY(6px);
-                opacity: 0;
-            }
-            100% {
-                transform: translateY(0);
-                opacity: 0.5;
-            }
+        @keyframes slideUpFade {
+            from { transform: translateY(4px); opacity: 0; }
+            to { transform: translateY(0); opacity: 0.5; }
         }
 
         .lyrics-display.updating .current-line {
-            animation: subtleSlideUp 0.3s ease-out;
+            animation: slideUp 0.2s ease-out;
         }
 
         .lyrics-display.updating .next-line {
-            animation: subtleSlideUpNext 0.3s ease-out 0.05s;
+            animation: slideUpFade 0.2s ease-out 0.02s;
         }
 
         .status-indicator {
@@ -227,74 +193,20 @@
         }
 
         .shortcuts-hint {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 6px;
             text-align: center;
         }
-
         .shortcuts-hint kbd {
             background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
+            border-radius: 2px;
             padding: 1px 4px;
-            font-size: 10px;
+            font-size: 9px;
             font-family: monospace;
-            color: rgba(255, 255, 255, 0.8);
         }
 
-        .hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Minimized state */
-        .overlay-container.minimized {
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .overlay-container.minimized .lyrics-display {
-            display: none;
-        }
-
-        .overlay-container.minimized .status-indicator {
-            display: none;
-        }
-
-        .minimized-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .minimized-bar .app-name {
-            opacity: 0.8;
-        }
-
-        .minimized-bar .expand-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            padding: 4px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        .minimized-bar .expand-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
+        .hidden { display: none; }
 
         /* Authentication modal - NO backdrop/shadow at all */
         .auth-modal {
@@ -518,1135 +430,406 @@
             .auth-icon { font-size: 36px; }
         }
 
-        /* Setup Wizard Modal */
-        .setup-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: transparent;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
-            pointer-events: none;
-            animation: fadeIn 0.3s ease;
-        }
-        .setup-modal.show {
-            display: flex;
-            pointer-events: auto;
-        }
-        .setup-content {
-            background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(20, 20, 20, 0.98) 100%);
-            padding: 32px 36px 40px;
-            border-radius: 24px;
-            width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-            -webkit-app-region: no-drag;
-            animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-        }
-        .wizard-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .wizard-header h2 {
-            color: #1db954;
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .wizard-header p {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-        }
-        /* Setup Steps */
-        .setup-steps {
-            position: relative;
-        }
-        .setup-step {
-            display: none;
-        }
-        .setup-step.active {
-            display: block;
-            animation: stepSlide 0.4s ease;
-        }
-        @keyframes stepSlide {
-            from {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        .step-indicator {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .step-number {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #1db954, #1ed760);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 700;
-            color: white;
-            flex-shrink: 0;
-        }
-        .step-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .step-content {
-            color: rgba(255, 255, 255, 0.8);
-        }
-        .step-content > p {
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-        /* Copy Box */
-        .copy-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(29, 185, 84, 0.3);
-            border-radius: 12px;
-            padding: 16px;
-            margin: 16px 0;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .copy-box:hover {
-            background: rgba(29, 185, 84, 0.1);
-            border-color: rgba(29, 185, 84, 0.5);
-            transform: translateY(-2px);
-        }
-        .copy-box code {
-            color: #1db954;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-        }
-        .copy-icon {
-            font-size: 20px;
-            transition: transform 0.2s ease;
-        }
-        .copy-box:active .copy-icon {
-            transform: scale(1.2);
-        }
-        /* Step Instructions */
-        .step-instructions {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin: 20px 0;
-        }
-        .step-instructions ol {
-            margin: 0;
-            padding-left: 20px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-        .step-instructions li {
-            padding: 6px 0;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        /* Input Styling */
-        .input-group {
-            margin-bottom: 20px;
-        }
-        .input-group label {
-            display: block;
-            color: #fff;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .setup-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 12px 16px;
-            color: #fff;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        .setup-input:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #1db954;
-            box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.1);
-        }
-        .setup-input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-        }
-        .password-input-wrapper {
-            position: relative;
-        }
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-size: 18px;
-            opacity: 0.5;
-            transition: opacity 0.2s ease;
-        }
-        .toggle-password:hover {
-            opacity: 1;
-        }
-        .input-hint {
-            display: block;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-            margin-top: 6px;
-        }
-        /* Wizard Buttons */
-        .wizard-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        .wizard-next-btn,
-        .wizard-back-btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: none;
-        }
-        .wizard-next-btn {
-            background: rgba(29, 185, 84, 0.2);
-            color: #1db954;
-            border: 1px solid rgba(29, 185, 84, 0.4);
-            flex: 1;
-        }
-        .wizard-next-btn:hover {
-            background: rgba(29, 185, 84, 0.3);
-            transform: translateY(-2px);
-        }
-        .wizard-back-btn {
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .wizard-back-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        /* Progress Bar */
-        .wizard-progress {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .progress-bar {
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1db954, #1ed760);
-            width: 33.33%;
-            transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .progress-text {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-        .setup-note {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-            text-align: center;
-            margin-top: 16px;
-        }
     </style>
 </head>
 <body>
-    <div class="overlay-container" id="overlayContainer">
-        <div class="status-indicator" id="statusIndicator"></div>
-
-        <div class="minimized-bar" id="minimizedBar" style="display: none;">
-            <span class="app-name">🎵 SpotLy</span>
-            <button class="expand-btn" onclick="toggleMinimize()">Expand</button>
-        </div>
-
-        <div class="lyrics-display" onclick="showSettingsGear()">
-            <div class="current-line" id="currentLine">Starting SpotLy...</div>
-            <div class="next-line" id="nextLine">Connecting to Spotify...</div>
-        </div>
-        
-        <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Settings">⚙</button>
-        <div class="settings-panel hidden" id="settingsPanel">
-            <div class="settings-section">
-                <div class="settings-label">Display</div>
-                <div class="settings-row">
-                    <button class="control-btn" id="minBtn" onclick="toggleMinimize()" title="Minimize overlay">Minimize</button>
-                    <button class="control-btn" id="lockBtn" onclick="toggleLock()" title="Lock window position">Lock</button>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <div class="settings-label">Appearance</div>
-                <div class="settings-row">
-                    <button class="control-btn" onclick="adjustOpacity()" title="Cycle opacity levels">Opacity</button>
-                    <button class="control-btn" onclick="adjustFontSize()" title="Cycle font sizes">Font</button>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <div class="settings-label">Click-Through</div>
-                <div class="settings-row">
-                    <button class="control-btn" id="ctBtn" onclick="toggleClickThrough()" title="Manual click-through">CT Off</button>
-                    <button class="control-btn" id="autoCtBtn" onclick="toggleAutoClickThrough()" title="Auto click-through for games">Auto Off</button>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <div class="settings-label">Actions</div>
-                <div class="settings-row">
-                    <button class="control-btn" onclick="refreshNow()" title="Force refresh track and lyrics">Refresh</button>
-                    <button class="control-btn" onclick="showDebugInfo()" title="Show debug information">Debug</button>
-                </div>
-            </div>
-
-            <div class="shortcuts-hint">
-                💡 Shortcuts: <kbd>Ctrl+H</kbd> Minimize • <kbd>Ctrl+O</kbd> Opacity • <kbd>Ctrl+F</kbd> Font
-            </div>
-        </div>
-    </div>
-
-    <!-- Authentication Modal -->
-    <div class="auth-modal" id="authModal">
-        <div class="auth-content" id="authContent">
-            <button class="auth-close" onclick="closeAuthModal()" title="Close">×</button>
-
-            <div class="auth-icon">🎵</div>
-            <h2>Welcome to SpotLy</h2>
-            <p>Lyrics overlay for gaming</p>
-
-            <div class="auth-features">
-                <ul>
-                    <li>Real-time synced lyrics</li>
-                    <li>Transparent gaming overlay</li>
-                    <li>Auto click-through mode</li>
-                    <li>Minimal & distraction-free</li>
-                </ul>
-            </div>
-
-            <button class="auth-btn" id="authBtn" onclick="authenticateSpotify()">
-                Connect Spotify
-            </button>
-
-            <p class="auth-note">Opens browser for secure login</p>
-        </div>
-    </div>
-
-    <!-- Setup Wizard Modal -->
-    <div class="setup-modal" id="setupModal">
-        <div class="setup-content">
-            <button class="auth-close" onclick="closeSetup()">×</button>
-            
-            <div class="wizard-header">
-                <div class="auth-icon">🎯</div>
-                <h2>Setup SpotLy</h2>
-                <p>Let's connect your Spotify account in 3 easy steps</p>
-            </div>
-            
-            <div class="setup-steps" id="setupSteps">
-                <!-- Step 1: Create Spotify App -->
-                <div class="setup-step active" data-step="1">
-                    <div class="step-indicator">
-                        <div class="step-number">1</div>
-                        <div class="step-title">Create Spotify App</div>
-                    </div>
-                    <div class="step-content">
-                        <p>First, you need to create a Spotify Developer app to get API credentials.</p>
-                        <button class="auth-btn" onclick="openSpotifyDashboard()">
-                            Open Spotify Dashboard
-                        </button>
-                        <div class="step-instructions">
-                            <ol>
-                                <li>Click the button above to open Spotify Developer Dashboard</li>
-                                <li>Log in with your Spotify account</li>
-                                <li>Click "Create App"</li>
-                                <li>Give it any name (e.g., "SpotLy")</li>
-                                <li>Add a description (optional)</li>
-                                <li>Click "Create"</li>
-                            </ol>
-                        </div>
-                        <button class="wizard-next-btn" onclick="nextStep()">Next Step →</button>
-                    </div>
+    <div id="app">
+        <!-- Auth Modal - shown when not authenticated -->
+        <div id="auth-screen" class="auth-modal">
+            <div class="auth-content">
+                <button class="auth-close" onclick="window.runtime.Quit()">×</button>
+                <div class="auth-icon">🎵</div>
+                <h2>SpotLy Overlay</h2>
+                <p>Connect your Spotify account to display real-time lyrics while gaming</p>
+                
+                <div class="auth-features">
+                    <ul>
+                        <li>Real-time synced lyrics overlay</li>
+                        <li>Always-on-top, transparent window</li>
+                        <li>Auto click-through during games</li>
+                    </ul>
                 </div>
                 
-                <!-- Step 2: Configure Redirect URI -->
-                <div class="setup-step" data-step="2">
-                    <div class="step-indicator">
-                        <div class="step-number">2</div>
-                        <div class="step-title">Add Redirect URI</div>
-                    </div>
-                    <div class="step-content">
-                        <p>In your Spotify app settings, add this Redirect URI:</p>
-                        <div class="copy-box" onclick="copyRedirectURI()">
-                            <code>http://127.0.0.1:8080/callback</code>
-                            <span class="copy-icon" id="copyIcon">📋</span>
-                        </div>
-                        <div class="step-instructions">
-                            <ol>
-                                <li>In your Spotify app, click "Edit Settings"</li>
-                                <li>Find the "Redirect URIs" section</li>
-                                <li>Click the copy button above to copy the URI</li>
-                                <li>Paste it into the Redirect URIs field</li>
-                                <li>Click "Add"</li>
-                                <li>Click "Save" at the bottom</li>
-                            </ol>
-                        </div>
-                        <div class="wizard-buttons">
-                            <button class="wizard-back-btn" onclick="prevStep()">← Back</button>
-                            <button class="wizard-next-btn" onclick="nextStep()">Next Step →</button>
-                        </div>
-                    </div>
+                <div id="auth-status" style="margin-bottom: 16px; font-size: 13px; color: rgba(255,255,255,0.6);">
+                    Ready to connect
                 </div>
                 
-                <!-- Step 3: Enter Credentials -->
-                <div class="setup-step" data-step="3">
-                    <div class="step-indicator">
-                        <div class="step-number">3</div>
-                        <div class="step-title">Enter Credentials</div>
-                    </div>
-                    <div class="step-content">
-                        <p>Copy your Client ID and Client Secret from Spotify and paste them here:</p>
-                        
-                        <div class="input-group">
-                            <label>Client ID</label>
-                            <input type="text" id="clientId" placeholder="Paste Client ID here" class="setup-input">
-                            <span class="input-hint">Found in your Spotify app's "Basic Information" section</span>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label>Client Secret</label>
-                            <div class="password-input-wrapper">
-                                <input type="password" id="clientSecret" placeholder="Paste Client Secret here" class="setup-input">
-                                <button class="toggle-password" onclick="togglePasswordVisibility()">👁️</button>
-                            </div>
-                            <span class="input-hint">Click "View client secret" in Spotify, then copy it</span>
-                        </div>
-                        
-                        <div class="wizard-buttons">
-                            <button class="wizard-back-btn" onclick="prevStep()">← Back</button>
-                            <button class="auth-btn" onclick="saveAndConnect()">Save & Connect</button>
-                        </div>
-                        
-                        <p class="setup-note">Your credentials are stored securely on your computer only.</p>
-                    </div>
-                </div>
+                <button id="auth-btn" class="auth-btn" onclick="startAuth()">
+                    Connect with Spotify
+                </button>
+                
+                <p class="auth-note">
+                    <a href="#" onclick="openConfig(); return false;" style="color: #1db954;">Configure credentials</a>
+                </p>
             </div>
+        </div>
+
+        <!-- Main Overlay - shown when authenticated -->
+        <div id="main-overlay" class="overlay-container" style="display: none;">
+            <div id="statusIndicator" class="status-indicator"></div>
+            <button id="settingsToggle" class="settings-toggle" onclick="toggleSettings()">⚙️</button>
             
-            <div class="wizard-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+            <div class="lyrics-display" onclick="showSettingsGear()">
+                <div id="current-line" class="current-line">No track playing</div>
+                <div id="next-line" class="next-line">Start playing music in Spotify</div>
+            </div>
+
+            <div id="settings-panel" class="settings-panel hidden">
+                <div class="settings-section">
+                    <div class="settings-label">Appearance</div>
+                    <div class="settings-row" style="flex-direction: column; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <span style="font-size: 11px; min-width: 50px;">Opacity</span>
+                            <input type="range" id="opacity-slider" min="30" max="100" value="90" 
+                                   style="flex: 1;" oninput="updateOpacity(this.value)">
+                            <span id="opacity-value" style="font-size: 11px; min-width: 35px;">90%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <span style="font-size: 11px; min-width: 50px;">Font</span>
+                            <input type="range" id="fontsize-slider" min="14" max="32" value="18" 
+                                   style="flex: 1;" oninput="updateFontSize(this.value)">
+                            <span id="fontsize-value" style="font-size: 11px; min-width: 35px;">18px</span>
+                        </div>
+                    </div>
                 </div>
-                <span class="progress-text">Step <span id="currentStep">1</span> of 3</span>
+                <div class="settings-section">
+                    <div class="settings-label">Controls</div>
+                    <div class="settings-row">
+                        <button class="control-btn" onclick="refreshNow()">🔄 Refresh</button>
+                        <button class="control-btn" onclick="toggleLock()" id="lockBtn">🔒 Lock</button>
+                        <button class="control-btn" onclick="window.runtime.Quit()">❌ Quit</button>
+                    </div>
+                </div>
+                <div class="shortcuts-hint">
+                    Click lyrics to show controls • <kbd>Esc</kbd> to close
+                </div>
             </div>
         </div>
     </div>
+
 
     <script>
-        // Force hide gear icon and status indicator on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            const gear = document.getElementById('settingsToggle');
-            const indicator = document.getElementById('statusIndicator');
-            if (gear) {
-                gear.style.display = 'none';
-                gear.style.opacity = '0';
-                gear.style.visibility = 'hidden';
-            }
-            if (indicator) {
-                indicator.style.display = 'none';
-                indicator.style.opacity = '0';
-                indicator.style.visibility = 'hidden';
-            }
-        });
-
-        // Global state
-        let isMinimized = false;
-        let currentOpacity = 0.9;
-        let currentFontSize = 18;
-        let isAuthenticated = false;
-        let isLocked = false;
-        let dragging = false;
-        let dragMoved = false;
-        let swallowNextClick = false;
-        let dragStart = { x: 0, y: 0 };
-        let winStart = { x: 0, y: 0 };
-        let clickThrough = false;
-        let autoClickThrough = true; // Auto-detect and enable click-through for games
-        let isGameActive = false;
-        let gameDetectionTimer = null;
         let settingsOpen = false;
+        let autoCollapseTimer = null;
+        let isAuthenticated = false;
+        let initialCheckDone = false;
+        let isLocked = false;
+        let gearVisibleTimer = null;
 
-        // Initialize app
-        window.addEventListener('DOMContentLoaded', async () => {
-            console.log('SpotLy Overlay initialized');
-            
-            // Ensure auth modal is hidden initially
-            hideAuthModal();
-            
-            checkAuthStatus();
-            startLyricsUpdater();
-            applyLockState();
-            applyAutoClickThroughState();
-            applyMinimizeState();
+        // Window dimensions
+        const COMPACT_HEIGHT = 120;
+        const EXPANDED_HEIGHT = 250;
+        const WINDOW_WIDTH = 600;
 
-            const container = document.getElementById('overlayContainer');
-            container.addEventListener('mousedown', onDragStart);
-            container.addEventListener('click', (e) => {
-                if (swallowNextClick) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    swallowNextClick = false;
-                }
-            }, true);
-            
-            // Close settings if clicking outside of it
-            document.addEventListener('mousedown', (e) => {
-                const panel = document.getElementById('settingsPanel');
-                const toggle = document.getElementById('settingsToggle');
-                if (!panel || panel.classList.contains('hidden')) return;
-                if (e.target === panel || panel.contains(e.target) || e.target === toggle) return;
-                panel.classList.add('hidden');
-                settingsOpen = false;
-                // Hide gear when settings close
-                const container = document.getElementById('overlayContainer');
-                window.gearHideTimer = setTimeout(() => {
-                    container.classList.remove('show-settings');
-                }, 1000);
-            });
-
-            // ✅ ADD THIS: Hide gear and indicator when window loses focus
-            window.addEventListener('blur', () => {
-                const container = document.getElementById('overlayContainer');
-                const gear = document.getElementById('settingsToggle');
-                const indicator = document.getElementById('statusIndicator');
-
-                container.classList.remove('show-settings');
-                clearTimeout(window.gearHideTimer);
-
-                // Force hide gear and indicator
-                if (gear) {
-                    gear.style.display = 'none';
-                    gear.style.opacity = '0';
-                    gear.style.visibility = 'hidden';
-                }
-                if (indicator) {
-                    indicator.style.display = 'none';
-                    indicator.style.opacity = '0';
-                    indicator.style.visibility = 'hidden';
-                }
-
-                // Close settings if open
-                if (settingsOpen) {
-                    settingsOpen = false;
-                    document.getElementById('settingsPanel').classList.add('hidden');
-                    if (gear) gear.classList.remove('active');
-                }
-            });
-
-            applyClickThroughState();
-
-            // Start game detection
-            startGameDetection();
-        });
-
-        // Global wizard state
-        let currentWizardStep = 1;
-
-        // Show setup wizard
-        function showSetupWizard() {
-            const modal = document.getElementById('setupModal');
-            if (modal) {
-                modal.classList.add('show');
-                currentWizardStep = 1;
-                showWizardStep(1);
-                updateProgress();
-            }
-            // Hide auth modal if it's open
-            hideAuthModal();
-        }
-
-        // Close setup wizard
-        function closeSetup() {
-            const modal = document.getElementById('setupModal');
-            if (modal) {
-                modal.classList.remove('show');
-            }
-        }
-
-        // Navigate wizard steps
-        function nextStep() {
-            if (currentWizardStep < 3) {
-                currentWizardStep++;
-                showWizardStep(currentWizardStep);
-                updateProgress();
-            }
-        }
-
-        function prevStep() {
-            if (currentWizardStep > 1) {
-                currentWizardStep--;
-                showWizardStep(currentWizardStep);
-                updateProgress();
-            }
-        }
-
-        function showWizardStep(step) {
-            document.querySelectorAll('.setup-step').forEach(el => {
-                el.classList.remove('active');
-            });
-            const targetStep = document.querySelector(`.setup-step[data-step="${step}"]`);
-            if (targetStep) {
-                targetStep.classList.add('active');
-            }
-        }
-
-        function updateProgress() {
-            const progressFill = document.getElementById('progressFill');
-            const currentStepText = document.getElementById('currentStep');
-            
-            if (progressFill) {
-                progressFill.style.width = `${(currentWizardStep / 3) * 100}%`;
-            }
-            if (currentStepText) {
-                currentStepText.textContent = currentWizardStep;
-            }
-        }
-
-        // Open Spotify Dashboard
-        function openSpotifyDashboard() {
-            window.open('https://developer.spotify.com/dashboard', '_blank');
-        }
-
-        // Copy redirect URI to clipboard
-        function copyRedirectURI() {
-            const uri = 'http://127.0.0.1:8080/callback';
-            navigator.clipboard.writeText(uri).then(() => {
-                const copyIcon = document.getElementById('copyIcon');
-                if (copyIcon) {
-                    copyIcon.textContent = '✓';
-                    setTimeout(() => {
-                        copyIcon.textContent = '📋';
-                    }, 2000);
-                }
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                alert('Please copy manually: ' + uri);
-            });
-        }
-
-        // Toggle password visibility
-        function togglePasswordVisibility() {
-            const input = document.getElementById('clientSecret');
-            if (input) {
-                input.type = input.type === 'password' ? 'text' : 'password';
-            }
-        }
-
-        // Save credentials and connect
-        async function saveAndConnect() {
-            const clientId = document.getElementById('clientId').value.trim();
-            const clientSecret = document.getElementById('clientSecret').value.trim();
-            
-            if (!clientId || !clientSecret) {
-                alert('Please enter both Client ID and Client Secret');
-                return;
-            }
-            
-            try {
-                // Validate credentials format
-                await window.go?.main?.App?.ValidateCredentials?.(clientId, clientSecret);
-                
-                // Save to config
-                await window.go?.main?.App?.SaveSpotifyCredentials?.(clientId, clientSecret);
-                
-                // Show success message
-                const setupModal = document.getElementById('setupModal');
-                const setupContent = document.querySelector('.setup-content');
-                
-                if (setupContent) {
-                    setupContent.innerHTML = `
-                        <div class="auth-icon">✓</div>
-                        <h2 style="color: #1db954;">Setup Complete!</h2>
-                        <p>Your Spotify credentials have been saved successfully.</p>
-                        <button class="auth-btn" onclick="startConnection()">Connect to Spotify</button>
-                    `;
-                }
-                
-            } catch (error) {
-                console.error('Failed to save credentials:', error);
-                alert('Error: ' + error.toString());
-            }
-        }
-
-        // Start Spotify connection after setup
-        async function startConnection() {
-            closeSetup();
-            showAuthModal();
-            // Auto-trigger auth flow
-            setTimeout(() => {
-                authenticateSpotify();
-            }, 500);
-        }
-
-        // Open config folder
-        async function openConfigFolder() {
-            try {
-                await window.go?.main?.App?.OpenConfigDirectory?.();
-            } catch (error) {
-                console.error('Failed to open config folder:', error);
-                alert('Could not open config folder: ' + error);
-            }
-        }
-
-        // Check authentication status
-        async function checkAuthStatus() {
-            try {
-                const isAuth = await window.go?.main?.App?.IsAuthenticated?.() || false;
-                if (!isAuth) {
-                    // Check if config has credentials
-                    const hasCredentials = await window.go?.main?.App?.HasCredentials?.();
-                    if (!hasCredentials) {
-                        // First time user - show setup wizard instead of auth modal
-                        showSetupWizard();
-                    } else {
-                        // Has credentials but not authenticated - show auth modal
-                        showAuthModal();
-                    }
-                } else {
-                    hideAuthModal();
-                    isAuthenticated = true;
-                }
-            } catch (error) {
-                console.log('Auth check failed, showing setup wizard');
-                showSetupWizard();
-            }
-        }
-
-        // Show authentication modal
-        function showAuthModal() {
-            document.getElementById('authModal').classList.add('show');
-        }
         // Show settings gear when lyrics are clicked
         function showSettingsGear() {
-            const container = document.getElementById('overlayContainer');
-            const gear = document.getElementById('settingsToggle');
+            const toggle = document.getElementById('settingsToggle');
             const indicator = document.getElementById('statusIndicator');
-
-            container.classList.add('show-settings');
-
-            // Force show the gear and status indicator
-            if (gear) {
-                gear.style.display = 'flex';
-                gear.style.opacity = '1';
-                gear.style.visibility = 'visible';
+            if (toggle) {
+                toggle.style.display = 'flex';
             }
             if (indicator) {
                 indicator.style.display = 'block';
-                indicator.style.opacity = '1';
-                indicator.style.visibility = 'visible';
             }
-
-            // Hide gear and indicator after 3 seconds of inactivity
-            clearTimeout(window.gearHideTimer);
-            window.gearHideTimer = setTimeout(() => {
+            
+            // Hide after 5 seconds if settings not open
+            if (gearVisibleTimer) clearTimeout(gearVisibleTimer);
+            gearVisibleTimer = setTimeout(() => {
                 if (!settingsOpen) {
-                    if (gear) {
-                        gear.style.display = 'none';
-                        gear.style.opacity = '0';
-                        gear.style.visibility = 'hidden';
-                    }
-                    if (indicator) {
-                        indicator.style.display = 'none';
-                        indicator.style.opacity = '0';
-                        indicator.style.visibility = 'hidden';
-                    }
-                    container.classList.remove('show-settings');
+                    if (toggle) toggle.style.display = 'none';
+                    if (indicator) indicator.style.display = 'none';
                 }
-            }, 3000);
+            }, 5000);
         }
 
-
-        // Update toggleSettings to manage visibility
-        function toggleSettings() {
-            const panel = document.getElementById('settingsPanel');
-            const toggle = document.getElementById('settingsToggle');
-            const container = document.getElementById('overlayContainer');
-
-            if (!panel) return;
+        // Toggle settings panel
+        async function toggleSettings() {
             settingsOpen = !settingsOpen;
-            panel.classList.toggle('hidden', !settingsOpen);
-            toggle.classList.toggle('active', settingsOpen);
+            const panel = document.getElementById('settings-panel');
+            const toggle = document.getElementById('settingsToggle');
 
-            // Keep gear and indicator visible when settings are open
             if (settingsOpen) {
-                container.classList.add('show-settings');
-                clearTimeout(window.gearHideTimer);
-                // Force show gear and indicator when settings are open
-                if (toggle) {
-                    toggle.style.display = 'flex';
-                    toggle.style.opacity = '1';
-                    toggle.style.visibility = 'visible';
-                }
-                const indicator = document.getElementById('statusIndicator');
-                if (indicator) {
-                    indicator.style.display = 'block';
-                    indicator.style.opacity = '1';
-                    indicator.style.visibility = 'visible';
-                }
+                panel.classList.remove('hidden');
+                if (toggle) toggle.classList.add('active');
+                await resizeWindow(WINDOW_WIDTH, EXPANDED_HEIGHT);
+                startAutoCollapseTimer();
             } else {
-                // ✅ CHANGE THIS: Remove timeout, hide immediately
-                container.classList.remove('show-settings');
-                // Force hide gear and indicator when settings are closed
-                if (toggle) {
-                    toggle.style.display = 'none';
-                    toggle.style.opacity = '0';
-                    toggle.style.visibility = 'hidden';
-                }
-                const indicator = document.getElementById('statusIndicator');
-                if (indicator) {
-                    indicator.style.display = 'none';
-                    indicator.style.opacity = '0';
-                    indicator.style.visibility = 'hidden';
-                }
+                panel.classList.add('hidden');
+                if (toggle) toggle.classList.remove('active');
+                await resizeWindow(WINDOW_WIDTH, COMPACT_HEIGHT);
+                clearAutoCollapseTimer();
             }
         }
 
-
-// Close auth modal - closes the entire app
-async function closeAuthModal() {
-    try {
-        // Call backend to quit the application
-        await window.go?.main?.App?.Quit?.();
-    } catch (error) {
-        console.error('Failed to quit:', error);
-        // Fallback: just hide modal if quit fails
-        const modal = document.getElementById('authModal');
-        if (modal) {
-            modal.classList.remove('show');
-        }
-    }
-}
-
-// Hide authentication modal
-function hideAuthModal() {
-    document.getElementById('authModal').classList.remove('show');
-}
-
-        // Authenticate with Spotify
-        async function authenticateSpotify() {
-            const authBtn = document.getElementById('authBtn');
-            const authContent = document.getElementById('authContent');
-
-            authBtn.disabled = true;
-            authBtn.classList.add('loading');
-
-            try {
-                const authURL = await window.go?.main?.App?.GetAuthURL?.();
-                if (authURL) {
-                    console.log('Auth URL:', authURL);
-                    window.open(authURL, '_blank');
+        // Auto-collapse after 10 seconds of inactivity
+        function startAutoCollapseTimer() {
+            clearAutoCollapseTimer();
+            autoCollapseTimer = setTimeout(() => {
+                if (settingsOpen) {
+                    toggleSettings();
                 }
-                await window.go?.main?.App?.StartOAuthFlow?.();
+            }, 10000);
+        }
 
-                // Compact waiting message
-                authContent.innerHTML = `
-                    <button class="auth-close" onclick="closeAuthModal()">×</button>
-                    <div class="auth-icon">🎧</div>
-                    <h2>Connecting...</h2>
-                    <p>Complete authentication in your browser</p>
-                    <div style="width: 40px; height: 40px; margin: 24px auto; border: 3px solid rgba(29, 185, 84, 0.3); border-top-color: #1db954; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <p class="auth-note">Window will close automatically</p>
-                `;
+        function clearAutoCollapseTimer() {
+            if (autoCollapseTimer) {
+                clearTimeout(autoCollapseTimer);
+                autoCollapseTimer = null;
+            }
+        }
 
-                setTimeout(async () => {
-                    const isAuth = await window.go?.main?.App?.IsAuthenticated?.() || false;
-                    if (isAuth) {
-                        // Compact success
-                        authContent.innerHTML = `
-                            <div class="auth-icon">✓</div>
-                            <h2 style="color: #1db954;">Connected!</h2>
-                            <p>SpotLy is ready to sync</p>
-                        `;
-
-                        const pollingStarted = await window.go?.main?.App?.StartSpotifyPolling?.() || false;
-                        console.log('Spotify polling started:', pollingStarted);
-
-                        setTimeout(() => {
-                            hideAuthModal();
-                            isAuthenticated = true;
-                            updateDisplay('🎵 Connected', 'Play a song to see lyrics');
-                        }, 1500);
-                    } else {
-                        authContent.innerHTML = `
-                            <button class="auth-close" onclick="closeAuthModal()">×</button>
-                            <div class="auth-icon">⚠️</div>
-                            <h2>Connection Failed</h2>
-                            <p>Unable to connect to Spotify</p>
-                            <button class="auth-btn" onclick="location.reload()">Try Again</button>
-                        `;
+        // Reset timer on any interaction
+        document.addEventListener('DOMContentLoaded', () => {
+            const panel = document.getElementById('settings-panel');
+            if (panel) {
+                panel.addEventListener('mousedown', () => {
+                    if (settingsOpen) {
+                        startAutoCollapseTimer();
                     }
-                }, 3000);
-            } catch (error) {
-                console.error('Authentication failed:', error);
-                const errorMsg = error.toString();
+                });
+            }
+        });
 
-                if (errorMsg.includes('credentials') || errorMsg.includes('client_id')) {
-                    authContent.innerHTML = `
-                        <button class="auth-close" onclick="closeAuthModal()">×</button>
-                        <div class="auth-icon">⚙️</div>
-                        <h2>Setup Required</h2>
-                        <p>Spotify credentials not configured</p>
-                        <button class="auth-btn" onclick="showSetupWizard()">Start Setup Wizard</button>
-                        <button class="auth-btn" style="background: rgba(255,255,255,0.1); margin-top: 8px;" onclick="openConfigFolder()">
-                            Open Config Folder
-                        </button>
-                    `;
-                } else {
-                    authContent.innerHTML = `
-                        <button class="auth-close" onclick="closeAuthModal()">×</button>
-                        <div class="auth-icon">❌</div>
-                        <h2>Error</h2>
-                        <p>${errorMsg}</p>
-                        <button class="auth-btn" onclick="location.reload()">Try Again</button>
-                    `;
+        // Resize window via Go backend
+        async function resizeWindow(width, height) {
+            try {
+                await window.go.main.App.ResizeWindow(width, height);
+            } catch (err) {
+                console.error('Failed to resize window:', err);
+            }
+        }
+
+        // Update opacity
+        function updateOpacity(value) {
+            const el = document.getElementById('opacity-value');
+            if (el) el.textContent = value + '%';
+            window.go.main.App.UpdateOverlayConfig({ opacity: value / 100 });
+        }
+
+        // Update font size
+        function updateFontSize(value) {
+            const valueEl = document.getElementById('fontsize-value');
+            const currentEl = document.getElementById('current-line');
+            const nextEl = document.getElementById('next-line');
+            if (valueEl) valueEl.textContent = value + 'px';
+            if (currentEl) currentEl.style.fontSize = value + 'px';
+            if (nextEl) nextEl.style.fontSize = Math.max(12, value - 4) + 'px';
+            window.go.main.App.UpdateOverlayConfig({ font_size: parseInt(value) });
+        }
+
+
+        // Auth screen functions
+        let authInProgress = false;
+        
+        async function startAuth() {
+            if (authInProgress) return; // Prevent double-clicks
+            authInProgress = true;
+            
+            const btn = document.getElementById('auth-btn');
+            const status = document.getElementById('auth-status');
+            
+            try {
+                if (status) status.textContent = 'Opening browser...';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('loading');
+                }
+                
+                await window.go.main.App.StartOAuthFlow();
+                if (status) status.textContent = 'Complete authentication in your browser...';
+
+                // Start polling to detect when auth completes
+                checkAuthComplete();
+            } catch (err) {
+                console.error('Auth error:', err);
+                if (status) status.textContent = '❌ ' + err;
+                authInProgress = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
                 }
             }
         }
 
-        // Update lyrics display
-        function updateDisplay(currentLine, nextLine, isPlaying = false) {
-            const currentLineEl = document.getElementById('currentLine');
-            const nextLineEl = document.getElementById('nextLine');
-            const lyricsDisplay = document.querySelector('.lyrics-display');
-
-            // Check if lyrics actually changed
-            const hasChanged =
-                currentLineEl.textContent !== (currentLine || 'No track playing') ||
-                nextLineEl.textContent !== (nextLine || '');
-
-            if (hasChanged) {
-                // Trigger animation
-                lyricsDisplay.classList.add('updating');
-
-                // Update content
-                currentLineEl.textContent = currentLine || 'No track playing';
-                nextLineEl.textContent = nextLine || '';
-
-                // Remove animation class after completion
-                setTimeout(() => {
-                    lyricsDisplay.classList.remove('updating');
-                }, 300); // Matches animation duration
+        // Check if auth completed
+        let authCheckInterval = null;
+        function checkAuthComplete() {
+            if (authCheckInterval) {
+                clearInterval(authCheckInterval);
+                authCheckInterval = null;
             }
 
-            // Update playing status indicator
-            const indicator = document.getElementById('statusIndicator');
-            if (isPlaying) {
-                indicator.classList.add('playing');
-            } else {
-                indicator.classList.remove('playing');
+            authCheckInterval = setInterval(async () => {
+                try {
+                    const authenticated = await window.go.main.App.IsAuthenticated();
+                    if (authenticated) {
+                        clearInterval(authCheckInterval);
+                        authCheckInterval = null;
+                        isAuthenticated = true;
+                        authInProgress = false;
+                        await showMainOverlay();
+                        
+                        // Start Spotify polling
+                        await window.go.main.App.StartSpotifyPolling();
+                    }
+                } catch (err) {
+                    console.error('Auth check error:', err);
+                }
+            }, 1000);
+        }
+
+        // Show/hide appropriate screens based on auth
+        async function updateUIForAuthStatus() {
+            try {
+                const authenticated = await window.go.main.App.IsAuthenticated();
+                isAuthenticated = authenticated;
+
+                if (authenticated) {
+                    await showMainOverlay();
+                } else {
+                    showAuthScreen();
+                }
+            } catch (err) {
+                console.error('Failed to update UI for auth status:', err);
+                showAuthScreen();
             }
         }
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.add('show');
+            document.getElementById('main-overlay').style.display = 'none';
+            document.getElementById('auth-status').textContent = 'Ready to connect';
+            
+            // Stop display polling when showing auth
+            if (displayInfoInterval) {
+                clearInterval(displayInfoInterval);
+                displayInfoInterval = null;
+            }
+        }
+
+        async function showMainOverlay() {
+            document.getElementById('auth-screen').classList.remove('show');
+            document.getElementById('main-overlay').style.display = 'block';
+
+            // Switch to compact mode if settings not open
+            if (!settingsOpen) {
+                await resizeWindow(WINDOW_WIDTH, COMPACT_HEIGHT);
+            }
+
+            // Start polling display info
+            startDisplayInfoPolling();
+        }
+
+        // Display info polling with animation
+        let displayInfoInterval = null;
+        let lastCurrentLine = '';
+        let lastNextLine = '';
+        
+        function startDisplayInfoPolling() {
+            if (displayInfoInterval) return; // Already running
+
+            displayInfoInterval = setInterval(async () => {
+                try {
+                    const info = await window.go.main.App.GetDisplayInfo();
+                    const currentEl = document.getElementById('current-line');
+                    const nextEl = document.getElementById('next-line');
+                    const indicator = document.getElementById('statusIndicator');
+                    const lyricsDisplay = document.querySelector('.lyrics-display');
+                    
+                    const newCurrent = info.current_line || 'No track playing';
+                    const newNext = info.next_line || '';
+                    
+                    // Check if lyrics changed - trigger animation
+                    if (lastCurrentLine !== newCurrent && lyricsDisplay) {
+                        lyricsDisplay.classList.add('updating');
+                        if (currentEl) currentEl.textContent = newCurrent;
+                        if (nextEl) nextEl.textContent = newNext;
+                        lastCurrentLine = newCurrent;
+                        lastNextLine = newNext;
+                        setTimeout(() => lyricsDisplay.classList.remove('updating'), 200);
+                    } else if (lastNextLine !== newNext) {
+                        if (nextEl) nextEl.textContent = newNext;
+                        lastNextLine = newNext;
+                    }
+                    
+                    // Update playing indicator
+                    if (indicator) {
+                        indicator.classList.toggle('playing', info.is_playing);
+                    }
+                } catch (err) {
+                    // Silently ignore polling errors
+                }
+            }, 200);
+        }
+
+        // Initialize with appropriate size based on auth status
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Check if user is authenticated
+                isAuthenticated = await window.go.main.App.IsAuthenticated();
+                initialCheckDone = true;
+
+                if (isAuthenticated) {
+                    // User is logged in - start compact and show overlay
+                    await showMainOverlay();
+                } else {
+                    // User needs to authenticate - use larger size for auth UI
+                    await resizeWindow(WINDOW_WIDTH, 500);
+                    showAuthScreen();
+                }
+            } catch (err) {
+                console.error('Failed to check auth status:', err);
+                // Default to auth screen
+                await resizeWindow(WINDOW_WIDTH, 500);
+                showAuthScreen();
+            }
+        });
 
         // Open config file/folder via backend
         async function openConfig() {
             try {
-                const path = await window.go?.main?.App?.OpenConfig?.();
-                if (path) {
-                    const authContent = document.querySelector('.auth-content');
-                    const safePath = path.replace(/\\/g, '\\\\');
-                    const note = document.createElement('p');
-                    note.style.fontSize = '12px';
-                    note.style.opacity = '0.8';
-                    note.textContent = `Opened config: ${path}`;
-                    if (authContent) authContent.appendChild(note);
-                }
+                await window.go?.main?.App?.OpenConfig?.();
             } catch (e) {
                 console.error('Failed to open config:', e);
             }
         }
 
-        // Lock/unlock dragging of the window
+        // Lock/unlock window position
         async function toggleLock() {
             isLocked = !isLocked;
-            applyLockState();
+            const lockBtn = document.getElementById('lockBtn');
+            if (lockBtn) {
+                lockBtn.textContent = isLocked ? '🔒 Locked' : '🔒 Lock';
+                lockBtn.classList.toggle('active', isLocked);
+            }
             try {
                 await window.go?.main?.App?.UpdateOverlayConfig?.({ locked: isLocked });
             } catch {}
         }
 
-        function applyLockState() {
-            const container = document.getElementById('overlayContainer');
-            const lockBtn = document.getElementById('lockBtn');
-            if (!container || !lockBtn) return;
-            lockBtn.textContent = isLocked ? '🔒 Locked' : 'Lock';
-            lockBtn.classList.toggle('active', isLocked);
-        }
-
-
-        // Click-through toggle
-        function toggleClickThrough() {
-            clickThrough = !clickThrough;
-            applyClickThroughState();
-        }
-
-        function applyClickThroughState() {
-            const container = document.getElementById('overlayContainer');
-            const ctBtn = document.getElementById('ctBtn');
-            const toggle = document.getElementById('settingsToggle');
-            if (!container || !ctBtn) return;
-
-            // Determine effective click-through state (manual or auto)
-            const effectiveClickThrough = clickThrough || (autoClickThrough && isGameActive);
-
-            if (effectiveClickThrough) {
-                container.classList.add('click-through');
-                if (clickThrough) {
-                    ctBtn.textContent = 'CT On';
-                } else if (autoClickThrough && isGameActive) {
-                    ctBtn.textContent = 'CT Auto';
-                }
-                // Force hide gear and indicator in click-through mode
-                if (toggle) {
-                    toggle.style.display = 'none';
-                    toggle.style.opacity = '0';
-                    toggle.style.visibility = 'hidden';
-                }
-                const indicator = document.getElementById('statusIndicator');
-                if (indicator) {
-                    indicator.style.display = 'none';
-                    indicator.style.opacity = '0';
-                    indicator.style.visibility = 'hidden';
-                }
-            } else {
-                container.classList.remove('click-through');
-                ctBtn.textContent = 'CT Off';
-                // Don't automatically show gear/indicator here - let showSettingsGear() control it
-            }
-            ctBtn.classList.toggle('active', effectiveClickThrough);
-        }
-
-        // Auto click-through toggle
-        function toggleAutoClickThrough() {
-            autoClickThrough = !autoClickThrough;
-            applyAutoClickThroughState();
-            applyClickThroughState(); // Refresh the display
-            
-            // Restart game detection if enabled
-            if (autoClickThrough) {
-                startGameDetection();
-            } else {
-                // Disable auto click-through when auto mode is off
-                isGameActive = false;
-                if (gameDetectionTimer) {
-                    clearInterval(gameDetectionTimer);
-                    gameDetectionTimer = null;
-                }
-                applyClickThroughState();
-            }
-        }
-
-        function applyAutoClickThroughState() {
-            const autoCtBtn = document.getElementById('autoCtBtn');
-            if (!autoCtBtn) return;
-            autoCtBtn.textContent = autoClickThrough ? 'Auto On' : 'Auto Off';
-            autoCtBtn.classList.toggle('active', autoClickThrough);
-        }
-
-
-        // Game detection
-        function startGameDetection() {
-            if (!autoClickThrough) return;
-            if (gameDetectionTimer) {
-                clearInterval(gameDetectionTimer);
-                gameDetectionTimer = null;
-            }
-            
-            gameDetectionTimer = setInterval(async () => {
-                if (!autoClickThrough) return;
-                
-                try {
-                    const activeWindow = await window.go?.main?.App?.GetActiveWindow?.();
-                    const isOverlayFocused = await window.go?.main?.App?.IsOverlayFocused?.();
-                    const wasGameActive = isGameActive;
-                    
-                    // Don't enable click-through if overlay is focused (user alt-tabbed to us)
-                    if (isOverlayFocused) {
-                        isGameActive = false;
-                    } else {
-                        // Check for Valorant and other common games
-                        isGameActive = activeWindow && (
-                            activeWindow.toLowerCase().includes('valorant') ||
-                            activeWindow.toLowerCase().includes('csgo') ||
-                            activeWindow.toLowerCase().includes('league of legends') ||
-                            activeWindow.toLowerCase().includes('overwatch') ||
-                            activeWindow.toLowerCase().includes('apex legends') ||
-                            activeWindow.toLowerCase().includes('fortnite') ||
-                            activeWindow.toLowerCase().includes('minecraft') ||
-                            activeWindow.toLowerCase().includes('roblox') ||
-                            activeWindow.toLowerCase().includes('counter-strike') ||
-                            activeWindow.toLowerCase().includes('dota 2')
-                        );
-                    }
-                    
-                    // Update click-through state if game status changed
-                    if (wasGameActive !== isGameActive) {
-                        applyClickThroughState();
-                    }
-                } catch (error) {
-                    // If we can't detect, assume no game is active
-                    if (isGameActive) {
-                        isGameActive = false;
-                        applyClickThroughState();
-                    }
-                }
-            }, 1000); // Check every second
-        }
 
         // Manual window drag for reliability on Windows
+        let dragging = false;
+        let dragMoved = false;
+        let dragStart = { x: 0, y: 0 };
+        let winStart = { x: 0, y: 0 };
+        
         async function onDragStart(e) {
             if (isLocked) return;
-            if (e.target.closest('.settings-panel') || e.target.closest('.settings-toggle')) return; // don't start drag from settings UI
-            // Avoid starting drag from a thin resize gutter area near edges
+            if (e.target.closest('.settings-panel') || e.target.closest('.settings-toggle')) return;
+            
+            const overlay = document.getElementById('main-overlay');
+            if (!overlay) return;
+            
             const edgeMargin = 8;
-            const rect = document.getElementById('overlayContainer').getBoundingClientRect();
+            const rect = overlay.getBoundingClientRect();
             if (
                 e.clientX - rect.left < edgeMargin ||
                 rect.right - e.clientX < edgeMargin ||
                 e.clientY - rect.top < edgeMargin ||
                 rect.bottom - e.clientY < edgeMargin
             ) {
-                return; // allow native resize gutter when unlocked
+                return;
             }
             dragging = true;
             dragMoved = false;
@@ -1678,180 +861,40 @@ function hideAuthModal() {
 
         function onDragEnd() {
             dragging = false;
-            if (dragMoved) {
-                // Prevent the click that follows a drag from triggering buttons
-                swallowNextClick = true;
-            }
             document.removeEventListener('mousemove', onDragMove);
             document.removeEventListener('mouseup', onDragEnd);
         }
-
-        // Start lyrics updater
-        function startLyricsUpdater() {
-            setInterval(async () => {
-                if (!isAuthenticated) return;
-
-                try {
-                    // This will be connected to Go backend
-                    const displayInfo = await window.go?.main?.App?.GetDisplayInfo?.();
-                    if (displayInfo) {
-                        updateDisplay(
-                            displayInfo.current_line,
-                            displayInfo.next_line,
-                            displayInfo.is_playing
-                        );
-                    }
-                } catch (error) {
-                    console.error('Failed to update lyrics:', error);
-                }
-            }, 1000);
-        }
-
-        // Show debug information
-        async function showDebugInfo() {
-            try {
-                const status = await window.go?.main?.App?.GetSpotifyStatus?.();
-                console.log('Spotify Status:', status);
-                
-                let debugLine = "🔍 Debug Info:";
-                let debugDetails = "";
-                
-                if (status) {
-                    debugDetails = `Auth: ${status.authenticated}, Client: ${status.has_client}, Poll: ${status.polling}`;
-                    
-                    if (!status.authenticated) {
-                        debugLine = "❌ Not authenticated";
-                    } else if (!status.has_client) {
-                        debugLine = "❌ No Spotify client";
-                    } else if (!status.polling) {
-                        debugLine = "❌ Polling stopped";
-                        debugDetails = "Try clicking Debug again to restart";
-                        // Try to restart polling
-                        await window.go?.main?.App?.StartSpotifyPolling?.();
-                    } else {
-                        debugLine = "✅ All systems running";
-                        debugDetails = "Should detect music if Spotify is playing";
-                    }
-                } else {
-                    debugLine = "❌ Cannot get status";
-                    debugDetails = "Backend connection issue";
-                }
-                
-                updateDisplay(debugLine, debugDetails);
-                
-                // Restore normal display after 5 seconds
-                setTimeout(() => {
-                    if (isAuthenticated) {
-                        updateDisplay('🎵 Connected to Spotify', 'Waiting for music...');
-                    }
-                }, 5000);
-                
-            } catch (error) {
-                console.error('Failed to get debug status:', error);
-                updateDisplay('❌ Debug Error', error.toString());
+        
+        // Initialize drag on overlay
+        document.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('main-overlay');
+            if (overlay) {
+                overlay.addEventListener('mousedown', onDragStart);
             }
-        }
+        });
 
         // Refresh now - force update track and lyrics
         async function refreshNow() {
+            const currentEl = document.getElementById('current-line');
+            const nextEl = document.getElementById('next-line');
+            
             try {
-                updateDisplay('🔄 Refreshing...', 'Fetching track and lyrics...');
+                if (currentEl) currentEl.textContent = '🔄 Refreshing...';
+                if (nextEl) nextEl.textContent = 'Fetching track and lyrics...';
                 
-                const result = await window.go?.main?.App?.RefreshNow?.();
-                
-                // Show result briefly, then continue normal updates
-                updateDisplay('♪ Loading lyrics...', 'Fetching from providers...');
-                
-                // Start normal updates after a moment
-                setTimeout(() => {
-                    // The normal updater will pick up the new track/lyrics
-                }, 2000);
+                await window.go?.main?.App?.RefreshNow?.();
                 
             } catch (error) {
                 console.error('Refresh failed:', error);
-                updateDisplay('❌ Refresh Error', error.toString());
+                if (currentEl) currentEl.textContent = '❌ Refresh Error';
+                if (nextEl) nextEl.textContent = error.toString();
             }
-        }
-
-        // Test Spotify connection
-        async function testConnection() {
-            try {
-                updateDisplay('🔄 Testing connection...', 'Please wait...');
-                
-                const result = await window.go?.main?.App?.TestSpotifyConnection?.();
-                updateDisplay('🧪 Connection Test:', result || 'No response');
-                
-                // Restore normal display after 7 seconds
-                setTimeout(() => {
-                    if (isAuthenticated) {
-                        updateDisplay('🎵 Connected to Spotify', 'Waiting for music...');
-                    }
-                }, 7000);
-                
-            } catch (error) {
-                console.error('Connection test failed:', error);
-                updateDisplay('❌ Test Error', error.toString());
-            }
-        }
-
-        // Control functions
-        async function toggleMinimize() {
-            isMinimized = !isMinimized;
-            const container = document.getElementById('overlayContainer');
-            const minimizedBar = document.getElementById('minimizedBar');
-
-            if (isMinimized) {
-                container.classList.add('minimized');
-                minimizedBar.style.display = 'flex';
-            } else {
-                container.classList.remove('minimized');
-                minimizedBar.style.display = 'none';
-            }
-            applyMinimizeState();
-            try {
-                // Update backend config visibility (also persisted)
-                await window.go?.main?.App?.UpdateOverlayConfig?.({ minimized: isMinimized });
-            } catch {}
-        }
-
-        function applyMinimizeState() {
-            const btn = document.getElementById('minBtn');
-            if (btn) {
-                btn.textContent = isMinimized ? 'Expand' : 'Minimize';
-                btn.classList.toggle('active', isMinimized);
-            }
-        }
-
-        async function adjustOpacity() {
-            currentOpacity = currentOpacity >= 0.9 ? 0.3 : currentOpacity + 0.2;
-            document.getElementById('overlayContainer').style.opacity = currentOpacity;
-            try {
-                await window.go?.main?.App?.UpdateOverlayConfig?.({ opacity: currentOpacity });
-            } catch {}
-        }
-
-        async function adjustFontSize() {
-            currentFontSize = currentFontSize >= 24 ? 14 : currentFontSize + 2;
-            document.getElementById('currentLine').style.fontSize = currentFontSize + 'px';
-            document.getElementById('nextLine').style.fontSize = (currentFontSize - 4) + 'px';
-            try {
-                await window.go?.main?.App?.UpdateOverlayConfig?.({ font_size: currentFontSize });
-            } catch {}
         }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeAuthModal();
-            } else if (e.ctrlKey && e.key === 'h') {
-                e.preventDefault();
-                toggleMinimize();
-            } else if (e.ctrlKey && e.key === 'o') {
-                e.preventDefault();
-                adjustOpacity();
-            } else if (e.ctrlKey && e.key === 'f') {
-                e.preventDefault();
-                adjustFontSize();
+            if (e.key === 'Escape' && settingsOpen) {
+                toggleSettings();
             }
         });
     </script>

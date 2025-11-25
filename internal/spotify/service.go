@@ -2,8 +2,6 @@ package spotify
 
 import (
 	"context"
-	"log"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -36,10 +34,10 @@ func New(authSvc *auth.Service, overlaySvc *overlay.Service, lyricsSvc *lyrics.S
 		overlay:         overlaySvc,
 		lyrics:          lyricsSvc,
 		stopChan:        make(chan struct{}),
-		baseInterval:    4 * time.Second,  // Base polling interval
-		currentInterval: 4 * time.Second,  // Current polling interval
+		baseInterval:    3 * time.Second,  // Faster polling when playing
+		currentInterval: 3 * time.Second,  // Current polling interval
 		backoffFactor:   1.5,              // Exponential backoff factor
-		maxInterval:     60 * time.Second, // Maximum polling interval
+		maxInterval:     30 * time.Second, // Maximum polling interval
 	}
 }
 
@@ -48,10 +46,8 @@ func (s *Service) Start() {
 	if s.isPolling {
 		return
 	}
-
 	s.isPolling = true
 	go s.pollLoop()
-	log.Println("Spotify polling service started")
 }
 
 // Stop stops the Spotify polling service
@@ -59,10 +55,8 @@ func (s *Service) Stop() {
 	if !s.isPolling {
 		return
 	}
-
 	s.isPolling = false
 	close(s.stopChan)
-	log.Println("Spotify polling service stopped")
 }
 
 // pollLoop is the main polling loop
@@ -87,55 +81,30 @@ func (s *Service) pollLoop() {
 func (s *Service) pollCurrentlyPlaying() {
 	client := s.auth.GetClient()
 	if client == nil {
-		log.Printf("Spotify polling: No client available")
-		// Not authenticated, slow down polling
 		s.adjustInterval(false, true)
 		s.overlay.SetCurrentTrack(nil)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	// Add jitter to prevent thundering herd
-	jitter := time.Duration(rand.Intn(1000)) * time.Millisecond
-	time.Sleep(jitter)
-
-	log.Printf("Spotify polling: Checking currently playing...")
 	playerState, err := client.PlayerCurrentlyPlaying(ctx)
 	if err != nil {
-		log.Printf("Spotify polling error: %v", err)
 		s.handleError(err)
 		return
 	}
 
-	// Handle different response scenarios
-	if playerState == nil {
-		log.Printf("Spotify polling: playerState is nil (no active device or no playback)")
+	if playerState == nil || playerState.Item == nil {
 		s.handleNoPlayback()
 		return
 	}
-
-	if playerState.Item == nil {
-		log.Printf("Spotify polling: playerState.Item is nil (no track)")
-		s.handleNoPlayback()
-		return
-	}
-
-	log.Printf("Spotify polling: Found track: %s by %s (playing: %v)",
-		playerState.Item.Name,
-		playerState.Item.Artists[0].Name,
-		playerState.Playing)
 
 	// Extract track information
 	track := s.extractTrackInfo(playerState)
 
 	// Check if track changed
 	if track.ID != s.lastTrackID {
-		log.Printf("Track changed: %s - %s", track.Artists[0], track.Name)
 		s.lastTrackID = track.ID
-
-		// Reset polling interval on track change
 		s.resetInterval()
 
 		// Fetch lyrics on track change
@@ -146,7 +115,6 @@ func (s *Service) pollCurrentlyPlaying() {
 
 	// Update overlay with current track
 	s.overlay.SetCurrentTrack(track)
-	log.Printf("Spotify polling: Updated overlay with track info")
 
 	// Adjust polling based on playback state
 	if track.IsPlaying {
@@ -200,14 +168,10 @@ func (s *Service) handleError(err error) {
 	s.consecutiveErrors++
 
 	// Check for rate limiting (429)
-	if httpErr, ok := err.(*spotify.Error); ok {
-		if httpErr.Status == http.StatusTooManyRequests {
-			s.handleRateLimit(httpErr)
-			return
-		}
+	if httpErr, ok := err.(*spotify.Error); ok && httpErr.Status == http.StatusTooManyRequests {
+		s.handleRateLimit(httpErr)
+		return
 	}
-
-	log.Printf("Spotify API error (attempt %d): %v", s.consecutiveErrors, err)
 
 	// Exponential backoff for general errors
 	if s.consecutiveErrors >= 3 {
@@ -222,37 +186,13 @@ func (s *Service) handleError(err error) {
 
 // handleRateLimit handles 429 rate limit responses
 func (s *Service) handleRateLimit(err *spotify.Error) {
-	log.Printf("Rate limited by Spotify API")
-
-	// Conservative backoff when Retry-After header is not available via API error type
-	s.currentInterval = 60 * time.Second
-	if s.currentInterval > s.maxInterval {
-		s.currentInterval = s.maxInterval
-	}
-
-	log.Printf("Backing off for %v due to rate limit", s.currentInterval)
+	s.currentInterval = s.maxInterval
 }
 
 // handleNoPlayback handles when there's no currently playing content
 func (s *Service) handleNoPlayback() {
-	log.Println("No currently playing content")
-
-	// Clear current track
 	s.overlay.SetCurrentTrack(nil)
-
-	// Slow down polling when nothing is playing
 	s.adjustInterval(false, true)
-}
-
-// handleNonMusicContent handles ads, podcasts, etc.
-func (s *Service) handleNonMusicContent() {
-	log.Println("Non-music content playing (ad/podcast)")
-
-	// Clear current track
-	s.overlay.SetCurrentTrack(nil)
-
-	// Slow down polling for non-music content
-	s.adjustInterval(false, false)
 }
 
 // adjustInterval adjusts the polling interval based on current state

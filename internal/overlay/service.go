@@ -17,9 +17,9 @@ type Service struct {
 	lastUpdate    time.Time
 }
 
-// syncLeadMs advances the effective progress slightly so the current line appears on time.
-// Positive value shows the next line a bit earlier to compensate for polling/render latency.
-const syncLeadMs int64 = 250
+// syncLeadMs advances the effective progress so lyrics appear slightly before sung.
+// 350ms compensates for polling + render latency without being too early.
+const syncLeadMs int64 = 350
 
 // TrackInfo holds information about the currently playing track
 type TrackInfo struct {

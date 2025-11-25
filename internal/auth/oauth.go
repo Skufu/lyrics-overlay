@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/zmb3/spotify/v2"
@@ -14,6 +16,24 @@ import (
 
 	"lyrics-overlay/internal/config"
 )
+
+// openBrowser opens the specified URL in the default browser
+func openBrowser(url string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	default:
+		return fmt.Errorf("unsupported platform")
+	}
+
+	return cmd.Start()
+}
 
 // Service handles Spotify OAuth2 authentication
 type Service struct {
@@ -126,6 +146,9 @@ func (s *Service) GetClient() *spotify.Client {
 func (s *Service) StartOAuthFlow() error {
 	cfg := s.config.Get()
 
+	// Stop any existing callback server first to prevent duplicates
+	s.stopCallbackServer()
+
 	// Start the callback server
 	if err := s.startCallbackServer(cfg.Port); err != nil {
 		return fmt.Errorf("failed to start callback server: %w", err)
@@ -134,8 +157,10 @@ func (s *Service) StartOAuthFlow() error {
 	// Generate the authorization URL
 	authURL := s.authenticator.AuthURL(s.state)
 
-	// Open the browser (this would typically be done by the frontend)
-	fmt.Printf("Please visit this URL to authenticate:\n%s\n", authURL)
+	// Open the browser automatically
+	if err := openBrowser(authURL); err != nil {
+		fmt.Printf("Please visit this URL to authenticate:\n%s\n", authURL)
+	}
 
 	return nil
 }
