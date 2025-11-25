@@ -514,6 +514,240 @@
             .auth-icon { font-size: 36px; }
         }
 
+        /* Setup Wizard Modal */
+        .setup-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .setup-modal.show {
+            display: flex;
+        }
+
+        .setup-content {
+            background: linear-gradient(135deg, rgba(25, 25, 25, 0.98) 0%, rgba(15, 15, 15, 0.98) 100%);
+            padding: 28px 32px;
+            border-radius: 20px;
+            width: 440px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            -webkit-app-region: no-drag;
+            animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .setup-content h2 {
+            color: var(--spotify-green);
+            font-size: 22px;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .setup-content > p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .setup-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .setup-step {
+            display: flex;
+            gap: 14px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: var(--spotify-green);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .step-content p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .copy-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .copy-box:hover {
+            background: rgba(29, 185, 84, 0.1);
+            border-color: var(--spotify-green);
+        }
+
+        .copy-box code {
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            color: var(--spotify-green);
+            word-break: break-all;
+        }
+
+        .copy-box .copy-icon {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .copy-box.copied {
+            background: rgba(29, 185, 84, 0.2);
+            border-color: var(--spotify-green);
+        }
+
+        .copy-box.copied .copy-icon::after {
+            content: ' ✓';
+            color: var(--spotify-green);
+        }
+
+        .setup-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .setup-input:focus {
+            outline: none;
+            border-color: var(--spotify-green);
+        }
+
+        .setup-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .setup-hint {
+            font-size: 11px !important;
+            color: var(--text-muted) !important;
+            margin-top: 6px !important;
+        }
+
+        .setup-btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .setup-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .setup-btn.primary {
+            background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+            color: white;
+        }
+
+        .setup-btn.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(29, 185, 84, 0.4);
+        }
+
+        .setup-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .setup-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .setup-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .setup-error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff6b6b;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .setup-error.show {
+            display: block;
+        }
+
+        .setup-success {
+            background: rgba(29, 185, 84, 0.1);
+            border: 1px solid rgba(29, 185, 84, 0.3);
+            color: var(--spotify-green);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .setup-success.show {
+            display: block;
+        }
+
     </style>
 </head>
 <body>
@@ -542,8 +776,67 @@
                     Connect with Spotify
                 </button>
                 
-                <p class="auth-note">
-                    <a href="#" onclick="openConfig(); return false;" style="color: #1db954;">Configure credentials</a>
+                <p class="auth-note" id="auth-setup-hint">
+                    First time? <a href="#" onclick="showSetupWizard(); return false;" style="color: #1db954; font-weight: 600;">Run Setup Wizard</a>
+                    &nbsp;|&nbsp;
+                    <a href="#" onclick="openConfig(); return false;" style="color: rgba(255,255,255,0.5);">Edit config</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Setup Wizard Modal -->
+        <div id="setup-wizard" class="setup-modal">
+            <div class="setup-content">
+                <button class="auth-close" onclick="closeSetupWizard()">×</button>
+                <div class="auth-icon">⚙️</div>
+                <h2>Quick Setup</h2>
+                <p>Connect SpotLy to your Spotify account in 3 easy steps</p>
+                
+                <div class="setup-steps">
+                    <div class="setup-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Create a Spotify App</h3>
+                            <p>Go to the Spotify Developer Dashboard and create a new app. Name it anything you like.</p>
+                            <button class="setup-btn secondary" onclick="window.open('https://developer.spotify.com/dashboard', '_blank')">
+                                Open Spotify Dashboard →
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="setup-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Add Redirect URI</h3>
+                            <p>In your Spotify app settings, add this as a Redirect URI:</p>
+                            <div class="copy-box" onclick="copyRedirectUri(this)">
+                                <code>http://127.0.0.1:8080/callback</code>
+                                <span class="copy-icon">📋</span>
+                            </div>
+                            <p class="setup-hint">Click to copy, then paste in Spotify Dashboard → Edit Settings → Redirect URIs</p>
+                        </div>
+                    </div>
+                    
+                    <div class="setup-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Enter Your Credentials</h3>
+                            <p>Copy your Client ID and Client Secret from the Spotify app page:</p>
+                            <input type="text" id="setup-client-id" class="setup-input" placeholder="Client ID (32 characters)">
+                            <input type="password" id="setup-client-secret" class="setup-input" placeholder="Client Secret (32 characters)">
+                            <div class="setup-btn-row">
+                                <button class="setup-btn primary" onclick="saveSetupCredentials()" id="setup-save-btn">
+                                    Save & Connect
+                                </button>
+                            </div>
+                            <div id="setup-error" class="setup-error"></div>
+                            <div id="setup-success" class="setup-success"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 16px; text-align: center;">
+                    Need help? <a href="#" onclick="window.open('https://github.com/your-repo/spotly#setup', '_blank'); return false;" style="color: var(--spotify-green);">View setup guide</a>
                 </p>
             </div>
         </div>
@@ -602,6 +895,14 @@
                         <button class="control-btn" onclick="window.runtime.Quit()">❌</button>
                     </div>
                 </div>
+                
+                <div class="settings-section">
+                    <div class="settings-label">Help</div>
+                    <div class="settings-row">
+                        <button class="control-btn" onclick="showSetupWizard()" title="Setup Wizard">⚙️ Setup</button>
+                        <button class="control-btn" onclick="openConfig()" title="Open Config">📁</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -619,6 +920,144 @@
         const COMPACT_HEIGHT = 120;
         const EXPANDED_HEIGHT = 250;
         const WINDOW_WIDTH = 600;
+        const SETUP_HEIGHT = 580;
+
+        // ============ SETUP WIZARD ============
+        
+        // Show the setup wizard
+        async function showSetupWizard() {
+            const wizard = document.getElementById('setup-wizard');
+            if (wizard) {
+                wizard.classList.add('show');
+                await resizeWindow(WINDOW_WIDTH, SETUP_HEIGHT);
+            }
+            // Clear any previous errors/success
+            const errorEl = document.getElementById('setup-error');
+            const successEl = document.getElementById('setup-success');
+            if (errorEl) { errorEl.classList.remove('show'); errorEl.textContent = ''; }
+            if (successEl) { successEl.classList.remove('show'); successEl.textContent = ''; }
+        }
+        
+        // Close the setup wizard
+        async function closeSetupWizard() {
+            const wizard = document.getElementById('setup-wizard');
+            if (wizard) {
+                wizard.classList.remove('show');
+            }
+            // Return to appropriate size
+            if (isAuthenticated) {
+                await resizeWindow(WINDOW_WIDTH, COMPACT_HEIGHT);
+            } else {
+                await resizeWindow(WINDOW_WIDTH, 500);
+            }
+        }
+        
+        // Copy redirect URI to clipboard
+        function copyRedirectUri(element) {
+            const uri = 'http://127.0.0.1:8080/callback';
+            navigator.clipboard.writeText(uri).then(() => {
+                element.classList.add('copied');
+                setTimeout(() => element.classList.remove('copied'), 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+        
+        // Save credentials from setup wizard
+        async function saveSetupCredentials() {
+            const clientId = document.getElementById('setup-client-id')?.value?.trim();
+            const clientSecret = document.getElementById('setup-client-secret')?.value?.trim();
+            const errorEl = document.getElementById('setup-error');
+            const successEl = document.getElementById('setup-success');
+            const saveBtn = document.getElementById('setup-save-btn');
+            
+            // Clear previous messages
+            if (errorEl) { errorEl.classList.remove('show'); errorEl.textContent = ''; }
+            if (successEl) { successEl.classList.remove('show'); successEl.textContent = ''; }
+            
+            // Validate
+            if (!clientId || !clientSecret) {
+                if (errorEl) {
+                    errorEl.textContent = '⚠️ Please enter both Client ID and Client Secret';
+                    errorEl.classList.add('show');
+                }
+                return;
+            }
+            
+            if (clientId.length < 32) {
+                if (errorEl) {
+                    errorEl.textContent = '⚠️ Client ID looks too short. It should be 32 characters.';
+                    errorEl.classList.add('show');
+                }
+                return;
+            }
+            
+            if (clientSecret.length < 32) {
+                if (errorEl) {
+                    errorEl.textContent = '⚠️ Client Secret looks too short. It should be 32 characters.';
+                    errorEl.classList.add('show');
+                }
+                return;
+            }
+            
+            // Disable button while saving
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Saving...';
+            }
+            
+            try {
+                // Save credentials via backend
+                await window.go.main.App.SaveSpotifyCredentials(clientId, clientSecret);
+                
+                if (successEl) {
+                    successEl.textContent = '✅ Credentials saved! Click Connect with Spotify to continue.';
+                    successEl.classList.add('show');
+                }
+                
+                // Close wizard after short delay and go to auth
+                setTimeout(async () => {
+                    await closeSetupWizard();
+                    // Update auth status text
+                    const authStatus = document.getElementById('auth-status');
+                    if (authStatus) {
+                        authStatus.textContent = '✅ Credentials configured! Click Connect to authenticate.';
+                        authStatus.style.color = 'var(--spotify-green)';
+                    }
+                }, 1500);
+                
+            } catch (err) {
+                if (errorEl) {
+                    errorEl.textContent = '❌ Failed to save: ' + (err.message || err);
+                    errorEl.classList.add('show');
+                }
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save & Connect';
+                }
+            }
+        }
+        
+        // Check if credentials exist and update UI accordingly
+        async function checkCredentialsOnLoad() {
+            try {
+                const hasCredentials = await window.go?.main?.App?.HasCredentials?.();
+                const authHint = document.getElementById('auth-setup-hint');
+                const authStatus = document.getElementById('auth-status');
+                
+                if (!hasCredentials) {
+                    // No credentials - prompt user to setup
+                    if (authStatus) {
+                        authStatus.innerHTML = '⚙️ <a href="#" onclick="showSetupWizard(); return false;" style="color: var(--spotify-green);">Setup required</a> - Click to configure Spotify credentials';
+                    }
+                }
+            } catch (e) {
+                // Ignore - backend might not be ready
+            }
+        }
+
+        // ============ END SETUP WIZARD ============
 
         // Show settings gear when lyrics are clicked
         function showSettingsGear() {
@@ -753,10 +1192,24 @@
         
         async function startAuth() {
             if (authInProgress) return; // Prevent double-clicks
-            authInProgress = true;
             
             const btn = document.getElementById('auth-btn');
             const status = document.getElementById('auth-status');
+            
+            // First check if credentials are configured
+            try {
+                const hasCredentials = await window.go?.main?.App?.HasCredentials?.();
+                if (!hasCredentials) {
+                    if (status) {
+                        status.innerHTML = '⚠️ No credentials configured. <a href="#" onclick="showSetupWizard(); return false;" style="color: var(--spotify-green); font-weight: 600;">Run Setup Wizard</a>';
+                    }
+                    return;
+                }
+            } catch (e) {
+                // Continue anyway if check fails
+            }
+            
+            authInProgress = true;
             
             try {
                 if (status) status.textContent = 'Opening browser...';
@@ -772,7 +1225,17 @@
                 checkAuthComplete();
             } catch (err) {
                 console.error('Auth error:', err);
-                if (status) status.textContent = '❌ ' + err;
+                const errStr = String(err).toLowerCase();
+                
+                // Check if it's a credential-related error
+                if (errStr.includes('client') || errStr.includes('credential') || errStr.includes('config')) {
+                    if (status) {
+                        status.innerHTML = '⚠️ Credentials issue. <a href="#" onclick="showSetupWizard(); return false;" style="color: var(--spotify-green); font-weight: 600;">Run Setup Wizard</a>';
+                    }
+                } else {
+                    if (status) status.textContent = '❌ ' + err;
+                }
+                
                 authInProgress = false;
                 if (btn) {
                     btn.disabled = false;
@@ -983,6 +1446,8 @@
                     // User needs to authenticate - use larger size for auth UI
                     await resizeWindow(WINDOW_WIDTH, 500);
                     showAuthScreen();
+                    // Check if credentials are configured and update UI hint
+                    await checkCredentialsOnLoad();
                 }
             } catch (err) {
                 console.error('Failed to check auth status:', err);
