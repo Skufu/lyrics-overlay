@@ -5,24 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SpotLy Overlay</title>
     <style>
+        :root {
+            --spotify-green: #1db954;
+            --spotify-green-light: #1ed760;
+            --bg-dark: rgba(0, 0, 0, 0.85);
+            --bg-panel: rgba(0, 0, 0, 0.72);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+        }
         html, body, :root {
             background: transparent !important;
-            background-color: transparent !important;
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: transparent;
-            color: white;
+            color: var(--text-primary);
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
-            -webkit-app-region: no-drag; /* use JS-based dragging for reliability */
+            -webkit-app-region: no-drag;
+        }
+        
+        /* Custom range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--spotify-green);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.1);
         }
 
         .overlay-container {
@@ -45,8 +73,11 @@
             position: relative;
             overflow: hidden;
             min-height: 60px;
-            cursor: pointer; /* ADD THIS - shows it's clickable */
-            padding: 10px; /* ADD THIS - larger click area */
+            cursor: pointer;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .current-line {
@@ -58,6 +89,41 @@
                 2px 2px 4px rgba(0, 0, 0, 0.8);
             color: #ffffff;
             line-height: 1.3;
+            position: relative;
+            display: inline-block;
+        }
+        
+        /* Karaoke highlight effect */
+        .current-line.karaoke {
+            background: linear-gradient(
+                90deg,
+                var(--spotify-green) var(--karaoke-progress, 0%),
+                #ffffff var(--karaoke-progress, 0%)
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+            filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8)) drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.6));
+        }
+        
+        /* Glow effect on the highlighted part */
+        .current-line.karaoke::before {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(
+                90deg,
+                var(--spotify-green) var(--karaoke-progress, 0%),
+                transparent var(--karaoke-progress, 0%)
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: blur(8px);
+            opacity: 0.6;
+            z-index: -1;
         }
 
         .next-line {
@@ -170,6 +236,24 @@
             letter-spacing: 0.5px;
         }
         .settings-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .slider-label {
+            font-size: 11px;
+            min-width: 40px;
+            color: var(--text-secondary);
+        }
+        .slider-row input[type="range"] { flex: 1; }
+        .slider-value {
+            font-size: 10px;
+            min-width: 45px;
+            text-align: right;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
 
         .control-btn {
             background: rgba(255, 255, 255, 0.12);
@@ -475,33 +559,48 @@
             </div>
 
             <div id="settings-panel" class="settings-panel hidden">
+                <!-- Track Info -->
+                <div class="settings-section" id="track-info-section" style="display: none;">
+                    <div id="track-name" style="font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+                    <div id="track-artist" style="font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+                </div>
+                
                 <div class="settings-section">
                     <div class="settings-label">Appearance</div>
-                    <div class="settings-row" style="flex-direction: column; gap: 8px;">
-                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                            <span style="font-size: 11px; min-width: 50px;">Opacity</span>
-                            <input type="range" id="opacity-slider" min="30" max="100" value="90" 
-                                   style="flex: 1;" oninput="updateOpacity(this.value)">
-                            <span id="opacity-value" style="font-size: 11px; min-width: 35px;">90%</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                            <span style="font-size: 11px; min-width: 50px;">Font</span>
-                            <input type="range" id="fontsize-slider" min="14" max="32" value="18" 
-                                   style="flex: 1;" oninput="updateFontSize(this.value)">
-                            <span id="fontsize-value" style="font-size: 11px; min-width: 35px;">18px</span>
-                        </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Font</span>
+                        <input type="range" id="fontsize-slider" min="14" max="32" value="18" oninput="updateFontSize(this.value)">
+                        <span id="fontsize-value" class="slider-value">18px</span>
                     </div>
                 </div>
+                
+                <div class="settings-section">
+                    <div class="settings-label">Sync Timing</div>
+                    <div class="slider-row">
+                        <span class="slider-label">Offset</span>
+                        <input type="range" id="sync-slider" min="-500" max="1000" value="350" step="50" oninput="updateSyncOffset(this.value)">
+                        <span id="sync-value" class="slider-value">+350ms</span>
+                    </div>
+                    <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">
+                        + shows lyrics earlier, − shows later
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="settings-label">Effects</div>
+                    <div class="settings-row">
+                        <button class="control-btn active" onclick="toggleKaraoke()" id="karaokeBtn">🎤 Karaoke</button>
+                    </div>
+                </div>
+                
                 <div class="settings-section">
                     <div class="settings-label">Controls</div>
                     <div class="settings-row">
-                        <button class="control-btn" onclick="refreshNow()">🔄 Refresh</button>
-                        <button class="control-btn" onclick="toggleLock()" id="lockBtn">🔒 Lock</button>
-                        <button class="control-btn" onclick="window.runtime.Quit()">❌ Quit</button>
+                        <button class="control-btn" onclick="refreshNow()">🔄</button>
+                        <button class="control-btn" onclick="toggleLock()" id="lockBtn">🔒</button>
+                        <button class="control-btn" onclick="logout()">🚪</button>
+                        <button class="control-btn" onclick="window.runtime.Quit()">❌</button>
                     </div>
-                </div>
-                <div class="shortcuts-hint">
-                    Click lyrics to show controls • <kbd>Esc</kbd> to close
                 </div>
             </div>
         </div>
@@ -617,6 +716,37 @@
             window.go.main.App.UpdateOverlayConfig({ font_size: parseInt(value) });
         }
 
+        // Update sync offset (stored locally, sent to backend)
+        let currentSyncOffset = 350;
+        function updateSyncOffset(value) {
+            currentSyncOffset = parseInt(value);
+            const el = document.getElementById('sync-value');
+            if (el) {
+                const sign = value >= 0 ? '+' : '';
+                el.textContent = sign + value + 'ms';
+            }
+            // Save to backend config
+            window.go?.main?.App?.UpdateOverlayConfig?.({ sync_offset: currentSyncOffset });
+        }
+
+        // Logout from Spotify
+        async function logout() {
+            if (confirm('Disconnect from Spotify?')) {
+                try {
+                    // Clear auth and show auth screen
+                    isAuthenticated = false;
+                    if (displayInfoInterval) {
+                        clearInterval(displayInfoInterval);
+                        displayInfoInterval = null;
+                    }
+                    await resizeWindow(WINDOW_WIDTH, 500);
+                    showAuthScreen();
+                } catch (e) {
+                    console.error('Logout failed:', e);
+                }
+            }
+        }
+
 
         // Auth screen functions
         let authInProgress = false;
@@ -716,6 +846,35 @@
                 await resizeWindow(WINDOW_WIDTH, COMPACT_HEIGHT);
             }
 
+            // Load current config and apply to UI
+            try {
+                const cfg = await window.go.main.App.GetOverlayConfig();
+                if (cfg) {
+                    // Sync offset
+                    const syncSlider = document.getElementById('sync-slider');
+                    const syncValue = document.getElementById('sync-value');
+                    if (syncSlider && cfg.sync_offset !== undefined) {
+                        syncSlider.value = cfg.sync_offset;
+                        currentSyncOffset = cfg.sync_offset;
+                        if (syncValue) {
+                            const sign = cfg.sync_offset >= 0 ? '+' : '';
+                            syncValue.textContent = sign + cfg.sync_offset + 'ms';
+                        }
+                    }
+                    // Font size
+                    const fontSlider = document.getElementById('fontsize-slider');
+                    const fontValue = document.getElementById('fontsize-value');
+                    if (fontSlider && cfg.font_size) {
+                        fontSlider.value = cfg.font_size;
+                        if (fontValue) fontValue.textContent = cfg.font_size + 'px';
+                        const currentEl = document.getElementById('current-line');
+                        if (currentEl) currentEl.style.fontSize = cfg.font_size + 'px';
+                    }
+                }
+            } catch (e) {
+                // Ignore config load errors
+            }
+
             // Start polling display info
             startDisplayInfoPolling();
         }
@@ -728,6 +887,10 @@
         function startDisplayInfoPolling() {
             if (displayInfoInterval) return; // Already running
 
+            // Also fetch track info periodically
+            let lastTrackId = '';
+            let lastLineStartTime = 0;
+            
             displayInfoInterval = setInterval(async () => {
                 try {
                     const info = await window.go.main.App.GetDisplayInfo();
@@ -742,7 +905,15 @@
                     // Check if lyrics changed - trigger animation
                     if (lastCurrentLine !== newCurrent && lyricsDisplay) {
                         lyricsDisplay.classList.add('updating');
-                        if (currentEl) currentEl.textContent = newCurrent;
+                        if (currentEl) {
+                            currentEl.textContent = newCurrent;
+                            currentEl.setAttribute('data-text', newCurrent);
+                            // Enable karaoke mode
+                            if (karaokeEnabled && info.is_playing && info.line_duration_ms > 0) {
+                                currentEl.classList.add('karaoke');
+                                lastLineStartTime = info.line_start_time_ms;
+                            }
+                        }
                         if (nextEl) nextEl.textContent = newNext;
                         lastCurrentLine = newCurrent;
                         lastNextLine = newNext;
@@ -752,14 +923,50 @@
                         lastNextLine = newNext;
                     }
                     
+                    // Update karaoke progress
+                    if (currentEl && karaokeEnabled && info.is_playing && info.line_duration_ms > 0) {
+                        const progress = Math.min(100, Math.max(0, (info.line_progress_ms / info.line_duration_ms) * 100));
+                        currentEl.style.setProperty('--karaoke-progress', progress + '%');
+                    } else if (currentEl && !info.is_playing) {
+                        // Pause karaoke when not playing
+                        currentEl.classList.remove('karaoke');
+                    }
+                    
                     // Update playing indicator
                     if (indicator) {
                         indicator.classList.toggle('playing', info.is_playing);
                     }
+                    
+                    // Update track info (less frequently)
+                    updateTrackInfo();
                 } catch (err) {
                     // Silently ignore polling errors
                 }
-            }, 200);
+            }, 50); // Faster polling for smooth karaoke animation
+        }
+        
+        // Update track info display
+        let trackInfoCounter = 0;
+        async function updateTrackInfo() {
+            trackInfoCounter++;
+            if (trackInfoCounter % 10 !== 0) return; // Only every 2 seconds (10 * 200ms)
+            
+            try {
+                const status = await window.go?.main?.App?.GetSpotifyStatus?.();
+                const section = document.getElementById('track-info-section');
+                const nameEl = document.getElementById('track-name');
+                const artistEl = document.getElementById('track-artist');
+                
+                if (status?.current_track) {
+                    if (section) section.style.display = 'block';
+                    if (nameEl) nameEl.textContent = status.current_track.name || '—';
+                    if (artistEl) artistEl.textContent = status.current_track.artists?.join(', ') || '—';
+                } else {
+                    if (section) section.style.display = 'none';
+                }
+            } catch (e) {
+                // Ignore
+            }
         }
 
         // Initialize with appropriate size based on auth status
@@ -799,13 +1006,35 @@
             isLocked = !isLocked;
             const lockBtn = document.getElementById('lockBtn');
             if (lockBtn) {
-                lockBtn.textContent = isLocked ? '🔒 Locked' : '🔒 Lock';
+                lockBtn.textContent = isLocked ? '🔒 Locked' : '🔒';
                 lockBtn.classList.toggle('active', isLocked);
             }
             try {
                 await window.go?.main?.App?.UpdateOverlayConfig?.({ locked: isLocked });
             } catch {}
         }
+        
+        // Toggle karaoke mode
+        function toggleKaraoke() {
+            karaokeEnabled = !karaokeEnabled;
+            const btn = document.getElementById('karaokeBtn');
+            const currentEl = document.getElementById('current-line');
+            if (btn) {
+                btn.textContent = karaokeEnabled ? '🎤 Karaoke' : '🎤 Off';
+                btn.classList.toggle('active', karaokeEnabled);
+            }
+            if (currentEl) {
+                if (karaokeEnabled) {
+                    currentEl.classList.add('karaoke');
+                } else {
+                    currentEl.classList.remove('karaoke');
+                    currentEl.style.removeProperty('--karaoke-progress');
+                }
+            }
+        }
+        
+        // Initialize karaokeEnabled
+        let karaokeEnabled = true;
 
 
         // Manual window drag for reliability on Windows

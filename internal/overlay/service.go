@@ -17,9 +17,8 @@ type Service struct {
 	lastUpdate    time.Time
 }
 
-// syncLeadMs advances the effective progress so lyrics appear slightly before sung.
-// 350ms compensates for polling + render latency without being too early.
-const syncLeadMs int64 = 350
+// defaultSyncLeadMs is the default offset if not configured.
+const defaultSyncLeadMs int64 = 350
 
 // TrackInfo holds information about the currently playing track
 type TrackInfo struct {
@@ -110,8 +109,12 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 				progress += elapsed
 			}
 		}
-		// Apply small lead to reduce perceived lateness
-		progress += syncLeadMs
+		// Apply configurable sync offset (or default)
+		syncOffset := s.config.Get().Overlay.SyncOffset
+		if syncOffset == 0 {
+			syncOffset = defaultSyncLeadMs
+		}
+		progress += syncOffset
 		currentIdx := -1
 
 		// Find the current lyrics line based on playback progress
@@ -125,13 +128,19 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 
 		if currentIdx >= 0 && currentIdx < len(s.currentLyrics.Lines) {
 			currentLine := s.currentLyrics.Lines[currentIdx].Text
+			lineStartTime := s.currentLyrics.Lines[currentIdx].Timestamp
 			nextLine := ""
+			nextLineTime := int64(0)
 
-			// Find next non-empty line for preview
+			// Find next non-empty line for preview and timing
 			for j := currentIdx + 1; j < len(s.currentLyrics.Lines); j++ {
 				if s.currentLyrics.Lines[j].Text != "" {
 					nextLine = s.currentLyrics.Lines[j].Text
+					nextLineTime = s.currentLyrics.Lines[j].Timestamp
 					break
+				} else if nextLineTime == 0 {
+					// Use empty line's timestamp for duration calc
+					nextLineTime = s.currentLyrics.Lines[j].Timestamp
 				}
 			}
 
@@ -140,10 +149,12 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 				for j := currentIdx + 1; j < len(s.currentLyrics.Lines); j++ {
 					if s.currentLyrics.Lines[j].Text != "" {
 						currentLine = s.currentLyrics.Lines[j].Text
+						lineStartTime = s.currentLyrics.Lines[j].Timestamp
 						// Update next line
 						for k := j + 1; k < len(s.currentLyrics.Lines); k++ {
 							if s.currentLyrics.Lines[k].Text != "" {
 								nextLine = s.currentLyrics.Lines[k].Text
+								nextLineTime = s.currentLyrics.Lines[k].Timestamp
 								break
 							}
 						}
@@ -152,10 +163,26 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 				}
 			}
 
+			// Calculate line duration and progress
+			lineDuration := int64(3000) // Default 3 seconds
+			if nextLineTime > lineStartTime {
+				lineDuration = nextLineTime - lineStartTime
+			}
+			lineProgress := progress - lineStartTime
+			if lineProgress < 0 {
+				lineProgress = 0
+			}
+			if lineProgress > lineDuration {
+				lineProgress = lineDuration
+			}
+
 			return &DisplayInfo{
-				CurrentLine: currentLine,
-				NextLine:    nextLine,
-				IsPlaying:   s.currentTrack.IsPlaying,
+				CurrentLine:   currentLine,
+				NextLine:      nextLine,
+				IsPlaying:     s.currentTrack.IsPlaying,
+				LineDuration:  lineDuration,
+				LineProgress:  lineProgress,
+				LineStartTime: lineStartTime,
 			}
 		}
 	}
@@ -184,9 +211,12 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 
 // DisplayInfo holds the information to display in the overlay
 type DisplayInfo struct {
-	CurrentLine string `json:"current_line"`
-	NextLine    string `json:"next_line"`
-	IsPlaying   bool   `json:"is_playing"`
+	CurrentLine     string `json:"current_line"`
+	NextLine        string `json:"next_line"`
+	IsPlaying       bool   `json:"is_playing"`
+	LineDuration    int64  `json:"line_duration_ms"`    // Duration of current line in ms
+	LineProgress    int64  `json:"line_progress_ms"`    // Progress into current line in ms
+	LineStartTime   int64  `json:"line_start_time_ms"`  // Timestamp when current line started
 }
 
 // ToggleVisibility toggles the overlay visibility

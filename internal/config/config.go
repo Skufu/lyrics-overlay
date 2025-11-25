@@ -37,6 +37,7 @@ type OverlayConfig struct {
 	Locked       bool    `json:"locked"`
 	Position     string  `json:"position"` // "top-left", "top-right", "bottom-left", "bottom-right"
 	ResizeLocked bool    `json:"resize_locked"`
+	SyncOffset   int64   `json:"sync_offset"` // Lyrics timing offset in ms (positive = earlier)
 }
 
 // AuthConfig holds OAuth tokens
@@ -102,6 +103,7 @@ func getDefaultConfig() *Config {
 			Locked:       false,
 			Position:     "bottom-left",
 			ResizeLocked: false,
+			SyncOffset:   350,
 		},
 	}
 }

@@ -385,6 +385,9 @@ func (a *App) UpdateOverlayConfig(config map[string]interface{}) error {
 	if resizeLocked, ok := config["resize_locked"].(bool); ok {
 		current.ResizeLocked = resizeLocked
 	}
+	if syncOffset, ok := config["sync_offset"].(float64); ok {
+		current.SyncOffset = int64(syncOffset)
+	}
 
 	return a.overlay.UpdateOverlayConfig(current)
 }
