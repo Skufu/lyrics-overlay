@@ -12,11 +12,6 @@
 
 A lightweight, transparent lyrics overlay for Spotify. Built with Go and Wails v2, SpotLy displays time-synced lyrics in an always-on-top window designed for gaming and streaming.
 
-<p>
-
-    <img src="https://your-url-here/spotly-demo.gif" width="100%" alt="SpotLy Overlay Demo">
-
-</p>
 
 SpotLy is built for gamers and streamers who want lyrics without the clutter. It features time-synced highlighting from LRCLIB with Genius fallback, minimal resource usage, and full customization.
 
@@ -112,8 +107,6 @@ On first run, a config file is created at `~/.spotly/config.json`:
 
   "port": 8080,
 
-  "genius_token": "optional_genius_token",
-
   "overlay": {
 
     "x": 100,
@@ -194,7 +187,7 @@ lyrics-overlay/
 
 │   ├── config/            # Configuration management
 
-│   ├── lyrics/            # Provider interface (LRCLIB, Genius)
+│   ├── lyrics/            # Provider interface (LRCLIB)
 
 │   ├── overlay/           # Window management & display
 
@@ -218,8 +211,6 @@ lyrics-overlay/
 
 | LRCLIB | `GET /api/search` | Lyrics search fallback |
 
-| Genius | Search API + scraping | Plain text lyrics fallback |
-
 ## Troubleshooting
 
 ### OAuth callback fails
@@ -234,9 +225,7 @@ lyrics-overlay/
 
 ### No lyrics found
 
-- LRCLIB is tried first (covers most popular songs)
-
-- Add `genius_token` to config for fallback coverage ([get token](https://genius.com/api-clients))
+- LRCLIB is the primary lyrics source (covers most popular songs)
 
 - Some tracks legitimately don't have lyrics available
 

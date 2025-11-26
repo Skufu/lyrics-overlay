@@ -1,7 +1,7 @@
 # Go build
 bin/
 build/
-spotly.exe
+*.exe
 
 # Wails build artifacts
 frontend/wailsjs/
