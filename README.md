@@ -1,306 +1,217 @@
-# SpotLy Overlay
+# SpotLy
 
 <p>
-
-    <a href="https://github.com/Skufu/lyrics-overlay/releases"><img src="https://img.shields.io/github/release/Skufu/lyrics-overlay.svg" alt="Latest Release"></a>
-
-    <a href="https://pkg.go.dev/github.com/Skufu/lyrics-overlay?tab=doc"><img src="https://godoc.org/github.com/Skufu/lyrics-overlay?status.svg" alt="GoDoc"></a>
-
-    <a href="https://github.com/Skufu/lyrics-overlay/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-
+  <a href="https://github.com/Skufu/lyrics-overlay/releases"><img src="https://img.shields.io/github/release/Skufu/lyrics-overlay.svg" alt="Latest Release"></a>
+  <a href="https://github.com/Skufu/lyrics-overlay/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://goreportcard.com/report/github.com/Skufu/lyrics-overlay"><img src="https://goreportcard.com/badge/github.com/Skufu/lyrics-overlay" alt="Go Report Card"></a>
 </p>
 
-A lightweight, transparent lyrics overlay for Spotify. Built with Go and Wails v2, SpotLy displays time-synced lyrics in an always-on-top window designed for gaming and streaming.
+A transparent, always-on-top lyrics overlay for Spotify. Built for gaming.
+
+<p>
+  <img src="https://your-url-here/spotly-demo.gif" width="700" alt="SpotLy running over a game">
+</p>
+
+<!-- TODO: Replace with actual demo GIF showing:
+     - SpotLy overlay visible during gameplay
+     - Time-synced lyrics highlighting in action
+     - Transparent background blending with game
+-->
+
+SpotLy displays time-synced lyrics in a minimal overlay that stays visible over fullscreen games and streams. No album art, no branding, no clutter. Just the words.
 
 
-SpotLy is built for gamers and streamers who want lyrics without the clutter. It features time-synced highlighting from LRCLIB with Genius fallback, minimal resource usage, and full customization.
+## Demo
 
-To get started, see the [Quick Start](#quick-start) below, check out the [configuration guide](#configuration), or jump straight to [troubleshooting](#troubleshooting).
+<p>
+  <img src="https://your-url-here/spotly-gaming.gif" width="700" alt="SpotLy in action while gaming">
+</p>
 
-## Motivation
+<!-- TODO: Replace with GIF/video showing:
+     - Starting SpotLy and connecting to Spotify
+     - Overlay appearing over a fullscreen game (VALORANT, League, etc.)
+     - Karaoke-style highlighting following the music
+     - Adjusting position/opacity mid-game
+-->
 
-I love singing while gaming to vibe with the music, but I'm terrible at memorizing lyrics. As someone who also livestreams, it's embarrassing when you're mid-song and suddenly forget the words.
 
-I couldn't find a lyrics overlay that was truly invisible, lightweight, and game-friendly. Musixmatch has an overlay, but it's a full window with UI, branding, and album art—great for casual use, but terrible for gaming where you need just the lyrics and nothing else.
+## Installation
 
-So I built one.
+### Download
 
-## Features
+Grab the latest `spotly.exe` from [Releases](https://github.com/Skufu/lyrics-overlay/releases).
 
-- **Always-on-top overlay** – stays visible over fullscreen games
+### Build from source
 
-- **Time-synced lyrics** – karaoke-style highlighting that follows the music
-
-- **Transparent design** – adjustable opacity to blend with any game
-
-- **Lightweight** – minimal CPU/GPU usage with smart LRU caching
-
-- **Resilient** – exponential backoff handles Spotify API rate limits gracefully
-
-- **Configurable** – customize position, font size, sync offset, and more
-
-- **Persistent settings** – your preferences are saved between sessions
-
-## Quick Start
-
-### Windows (Recommended)
-
-1. Download the latest `spotly.exe` from [GitHub Releases](https://github.com/Skufu/lyrics-overlay/releases)
-
-2. Run the executable
-
-3. Click "Connect with Spotify" when prompted
-
-4. Complete browser authentication
-
-5. Start playing music in Spotify
-
-### Build from Source
-
-**Prerequisites:**
-
-- Go 1.22+
-
-- Spotify Developer Account ([get credentials](https://developer.spotify.com/dashboard))
-
-- Wails v2 CLI
-
-```
-
+```bash
 # Install Wails CLI
-
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 # Clone and build
-
 git clone https://github.com/Skufu/lyrics-overlay.git
-
 cd lyrics-overlay
-
-go mod tidy
-
-# Development mode (hot reload)
-
-wails dev
-
-# Production build
-
 wails build
-
 ```
 
-**Windows quick build:** Double-click `build.bat` or run `./build.bat`
+Requires Go 1.22+ and a [Spotify Developer Account](https://developer.spotify.com/dashboard).
 
-## Configuration
 
-On first run, a config file is created at `~/.spotly/config.json`:
+## Tutorial
 
-```
+This is a quick walkthrough on getting SpotLy running.
 
-{
+### Step 1: Create a Spotify App
 
-  "spotify_client_id": "your_client_id",
-
-  "spotify_client_secret": "your_client_secret",
-
-  "redirect_uri": "http://127.0.0.1:8080/callback",
-
-  "port": 8080,
-
-  "overlay": {
-
-    "x": 100,
-
-    "y": 100,
-
-    "width": 600,
-
-    "height": 120,
-
-    "opacity": 0.9,
-
-    "font_size": 16,
-
-    "visible": true,
-
-    "locked": false,
-
-    "position": "bottom-left",
-
-    "sync_offset": 350
-
-  }
-
-}
+Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and create a new app. Under **Redirect URIs**, add:
 
 ```
+http://127.0.0.1:8080/callback
+```
 
-**Get your Spotify credentials:**
+Copy your **Client ID** and **Client Secret**.
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+### Step 2: Launch SpotLy
 
-2. Create a new app
+Run the executable. On first launch, you'll be prompted to enter your Spotify credentials. Paste in your Client ID and Secret, then click **Connect with Spotify**.
 
-3. Add `http://127.0.0.1:8080/callback` to Redirect URIs
+<p>
+  <img src="https://your-url-here/spotly-setup.png" width="500" alt="SpotLy setup screen">
+</p>
 
-4. Copy Client ID and Secret to your config
+<!-- TODO: Replace with screenshot of the setup/auth screen -->
 
-**Windows config path:** `C:\Users\<YOU>\.spotly\config.json`
+### Step 3: Authenticate
+
+Your browser will open to Spotify's authorization page. Grant access, and you're done. SpotLy will start displaying lyrics for whatever you're playing.
+
 
 ## Usage
 
-### Controls
-
 Hover over the overlay to reveal controls:
 
-- **Drag** – reposition the window (when unlocked)
-
-- **Settings gear** – adjust font size, sync offset, toggle karaoke mode
-
-- **Lock icon** – prevent accidental repositioning while gaming
-
-- **Refresh** – force re-fetch current track and lyrics
+| Control | Action |
+|---------|--------|
+| Drag | Reposition the window |
+| Lock icon | Prevent accidental movement |
+| Settings | Adjust font size, opacity, sync offset |
+| Refresh | Force re-fetch current track |
 
 ### Sync Offset
 
-Adjust the timing slider if lyrics appear too early or too late:
+If lyrics appear too early or late, adjust the timing slider in settings:
 
-- Positive values → lyrics appear earlier
+- **Positive values** shift lyrics earlier
+- **Negative values** shift lyrics later
 
-- Negative values → lyrics appear later
+Default is 350ms, which works well for most setups.
 
-Default offset is 350ms, which works well for most setups.
+
+## Configuration
+
+Config is stored at `~/.spotly/config.json` (Windows: `C:\Users\<YOU>\.spotly\config.json`):
+
+```json
+{
+  "spotify_client_id": "your_client_id",
+  "spotify_client_secret": "your_client_secret",
+  "redirect_uri": "http://127.0.0.1:8080/callback",
+  "port": 8080,
+  "overlay": {
+    "x": 100,
+    "y": 100,
+    "width": 600,
+    "height": 120,
+    "opacity": 0.9,
+    "font_size": 16,
+    "visible": true,
+    "locked": false,
+    "position": "bottom-left",
+    "sync_offset": 350
+  }
+}
+```
+
 
 ## Architecture
 
 ```
-
-lyrics-overlay/
-
-├── main.go                 # Wails application entry point
-
+spotly/
+├── main.go                 # Wails application entry
 ├── internal/
-
-│   ├── auth/              # Spotify OAuth2 flow
-
-│   ├── cache/             # LRU lyrics cache
-
-│   ├── config/            # Configuration management
-
-│   ├── lyrics/            # Provider interface (LRCLIB)
-
-│   ├── overlay/           # Window management & display
-
-│   └── spotify/           # API client & polling service
-
-└── frontend/dist/         # HTML/CSS/JS overlay UI
-
+│   ├── auth/               # Spotify OAuth2
+│   ├── cache/              # LRU lyrics cache
+│   ├── config/             # Configuration persistence
+│   ├── lyrics/             # LRCLIB provider
+│   ├── overlay/            # Display state management
+│   └── spotify/            # API client & polling
+└── frontend/dist/          # Overlay UI
 ```
 
-### API Endpoints Used
+### API Usage
 
 | Service | Endpoint | Purpose |
-
 |---------|----------|---------|
-
 | Spotify | `GET /me/player/currently-playing` | Current track & progress |
-
-| Spotify | `GET /me/player` | Player state |
-
 | LRCLIB | `GET /api/get` | Synced lyrics lookup |
+| LRCLIB | `GET /api/search` | Fallback search |
 
-| LRCLIB | `GET /api/search` | Lyrics search fallback |
 
 ## Troubleshooting
 
 ### OAuth callback fails
 
-- Ensure redirect URI matches exactly in Spotify Dashboard: `http://127.0.0.1:8080/callback`
-
-- Check if port 8080 is available (close other apps using it)
-
-- Temporarily disable firewall and test
-
-- Try changing `port` in config to `8081` or `9000`
+- Redirect URI must match exactly: `http://127.0.0.1:8080/callback`
+- Ensure port 8080 is available
+- Try disabling firewall temporarily
 
 ### No lyrics found
 
-- LRCLIB is the primary lyrics source (covers most popular songs)
+- LRCLIB covers most popular songs
+- Some tracks don't have lyrics available
+- Metadata is normalized automatically
 
-- Some tracks legitimately don't have lyrics available
+### Overlay not visible in fullscreen
 
-- App normalizes artist/title metadata automatically
-
-### Rate limiting (429 errors)
-
-- Built-in exponential backoff handles this automatically
-
-- Default polling interval is 4 seconds
-
-- Check `~/.spotly/debug.log` if DEBUG mode is enabled
+- Use borderless windowed mode
+- Some anti-cheat systems block overlays
 
 ### Build errors
 
+```bash
+wails doctor        # Check dependencies
+go mod tidy         # Fix module issues
 ```
 
-go get github.com/wailsapp/wails/v2@latest
-
-go mod tidy
-
-wails doctor  # Check Wails dependencies
-
-```
-
-### Overlay not visible in fullscreen games
-
-- Try running the game in borderless windowed mode
-
-- Some anti-cheat systems block overlays (expected behavior)
-
-- Check game's overlay compatibility settings
 
 ## Roadmap
 
-- [ ] Global hotkeys for hands-free control
-
-- [ ] Cross-platform support (macOS, Linux)
-
-- [ ] Multiple monitor positioning
-
-- [ ] Custom themes and styling
+- [ ] Global hotkeys
+- [ ] macOS and Linux support
+- [ ] Multi-monitor positioning
+- [ ] Custom themes
 
 
 ## Contributing
 
-Contributions are welcome! Areas of interest:
+Contributions welcome. See [contributing guidelines](https://github.com/Skufu/lyrics-overlay/contribute).
 
-- Cross-platform compatibility (macOS/Linux)
-
+Areas of interest:
+- Cross-platform support
 - Global hotkey implementation
-
-- UI/UX improvements
-
 - Performance optimizations
 
-- Bug fixes and testing
-
-See [contributing](https://github.com/Skufu/lyrics-overlay/contribute).
 
 ## Acknowledgments
 
-SpotLy Overlay is built with the following open source projects:
+- [Wails](https://wails.io/) - Go desktop framework
+- [LRCLIB](https://lrclib.net/) - Synchronized lyrics API
+- [Spotify Web API](https://developer.spotify.com/documentation/web-api/)
 
-- [Wails](https://wails.io/) – Go desktop application framework
-
-- [LRCLIB](https://lrclib.net/) – free synchronized lyrics API
-
-- [Spotify Web API](https://developer.spotify.com/documentation/web-api/) – music playback integration
 
 ## License
 
-[MIT](https://github.com/Skufu/lyrics-overlay/blob/main/LICENSE)
+[MIT](LICENSE)
 
 ---
 
-Part of your karaoke gaming setup.
-
+Part of your gaming setup.
