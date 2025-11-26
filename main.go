@@ -534,7 +534,7 @@ func (a *App) startClickThroughMonitor() {
 	}
 
 	go func() {
-		ticker := time.NewTicker(2 * time.Second)
+		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
 		for {

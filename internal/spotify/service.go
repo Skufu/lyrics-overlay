@@ -34,8 +34,8 @@ func New(authSvc *auth.Service, overlaySvc *overlay.Service, lyricsSvc *lyrics.S
 		overlay:         overlaySvc,
 		lyrics:          lyricsSvc,
 		stopChan:        make(chan struct{}),
-		baseInterval:    3 * time.Second,  // Faster polling when playing
-		currentInterval: 3 * time.Second,  // Current polling interval
+		baseInterval:    5 * time.Second,  // Faster polling when playing
+		currentInterval: 5 * time.Second,  // Current polling interval
 		backoffFactor:   1.5,              // Exponential backoff factor
 		maxInterval:     30 * time.Second, // Maximum polling interval
 	}

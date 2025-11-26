@@ -1,198 +1,327 @@
 # SpotLy Overlay
 
-A personal-use desktop app that shows time-synced or plain text lyrics in an always-on-top, transparent overlay for the currently playing Spotify track using Go and Wails v2.
+<p>
+
+    <a href="https://github.com/Skufu/lyrics-overlay/releases"><img src="https://img.shields.io/github/release/Skufu/lyrics-overlay.svg" alt="Latest Release"></a>
+
+    <a href="https://pkg.go.dev/github.com/Skufu/lyrics-overlay?tab=doc"><img src="https://godoc.org/github.com/Skufu/lyrics-overlay?status.svg" alt="GoDoc"></a>
+
+    <a href="https://github.com/Skufu/lyrics-overlay/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+
+</p>
+
+A lightweight, transparent lyrics overlay for Spotify. Built with Go and Wails v2, SpotLy displays time-synced lyrics in an always-on-top window designed for gaming and streaming.
+
+<p>
+
+    <img src="https://your-url-here/spotly-demo.gif" width="100%" alt="SpotLy Overlay Demo">
+
+</p>
+
+SpotLy is built for gamers and streamers who want lyrics without the clutter. It features time-synced highlighting from LRCLIB with Genius fallback, minimal resource usage, and full customization.
+
+To get started, see the [Quick Start](#quick-start) below, check out the [configuration guide](#configuration), or jump straight to [troubleshooting](#troubleshooting).
+
+## Motivation
+
+I love singing while gaming to vibe with the music, but I'm terrible at memorizing lyrics. As someone who also livestreams, it's embarrassing when you're mid-song and suddenly forget the words.
+
+I couldn't find a lyrics overlay that was truly invisible, lightweight, and game-friendly. Musixmatch has an overlay, but it's a full window with UI, branding, and album art—great for casual use, but terrible for gaming where you need just the lyrics and nothing else.
+
+So I built one.
 
 ## Features
 
-✅ **Implemented:**
-- Go 1.22+ with Wails v2 for desktop window/runtime
-- Always-on-top, transparent, draggable overlay window
-- Spotify OAuth2 Authorization Code flow with localhost callback
-- Resilient Spotify API polling with exponential backoff
-- LRU cache for lyrics (by track ID and normalized artist|title)
-- Lyrics providers: LRCLIB (synced when available) + Genius fallback
-- Minimal HTML/CSS/JS frontend for overlay UI
-- Configuration persistence in user's home directory
+- **Always-on-top overlay** – stays visible over fullscreen games
 
-🔄 **In Progress:**
-- Dependency resolution and first build
-- Global hotkeys implementation
-- Enhanced lyrics fetching (full text scraping)
+- **Time-synced lyrics** – karaoke-style highlighting that follows the music
 
-📋 **Planned:**
-- Windows packaging and game compatibility testing
-- Enhanced UI controls and settings persistence
-- Cross-platform support (macOS/Linux)
+- **Transparent design** – adjustable opacity to blend with any game
 
-## Quick Install (Windows)
+- **Lightweight** – minimal CPU/GPU usage with smart LRU caching
 
-1. Download the latest `spotly.exe` from the GitHub Releases page.
-2. Run it. On first run, click "Connect with Spotify".
-3. If prompted for configuration, click "Open config" in the app, paste your Spotify Client ID and Secret, save, then click "Restart App".
-   - The config file is created at `~/.spotly/config.json` (e.g., `C:\Users\YOU\.spotly\config.json`).
+- **Resilient** – exponential backoff handles Spotify API rate limits gracefully
 
-## Setup Instructions
+- **Configurable** – customize position, font size, sync offset, and more
 
-### Prerequisites
+- **Persistent settings** – your preferences are saved between sessions
 
-1. **Go 1.22+** installed on your system
-2. **Spotify Developer Account** - Register an app at [Spotify Dashboard](https://developer.spotify.com/dashboard)
-3. **Genius API Token** (optional) - Get from [Genius API Clients](https://genius.com/api-clients)
-   - Not required. LRCLIB is used by default and often returns synced lyrics.
+## Quick Start
 
-### Installation (from source)
+### Windows (Recommended)
 
-1. **Clone and setup:**
-   ```bash
-   git clone <repository>
-   cd lyrics-overlay
-   go mod tidy
-   ```
+1. Download the latest `spotly.exe` from [GitHub Releases](https://github.com/Skufu/lyrics-overlay/releases)
 
-2. **Configure Spotify API:**
-   - First run will create a config file at `~/.spotly/config.json`.
-   - Edit that file and set:
-     - `spotify_client_id`
-     - `spotify_client_secret`
-     - `redirect_uri` should be `http://127.0.0.1:8080/callback` (and must be added in your Spotify Dashboard)
-     - Optionally set `genius_token` to enable Genius fallback.
-    - Windows path example: `C:\Users\<YOU>\.spotly\config.json`
+2. Run the executable
 
-3. **Install Wails v2 CLI:**
-   ```bash
-   go install github.com/wailsapp/wails/v2/cmd/wails@latest
-   ```
+3. Click "Connect with Spotify" when prompted
 
-4. **Windows quick build:**
-   - Double-click `build.bat` or run:
-     ```bash
-     ./build.bat
-     ```
+4. Complete browser authentication
 
-5. **Development run:**
-   ```bash
-   wails dev
-   ```
+5. Start playing music in Spotify
 
-6. **Build for production:**
-   ```bash
-   wails build
-   ```
+### Build from Source
 
-### Configuration
+**Prerequisites:**
 
-The app creates a config file at `~/.spotly/config.json` with these settings:
+- Go 1.22+
 
-```json
-{
-  "spotify_client_id": "your_client_id",
-  "spotify_client_secret": "your_client_secret", 
-  "redirect_uri": "http://127.0.0.1:8080/callback",
-  "port": 8080,
-  "genius_token": "optional_genius_token",
-  "overlay": {
-    "x": 100,
-    "y": 100,
-    "width": 600,
-    "height": 120,
-    "opacity": 0.9,
-    "font_size": 16,
-    "visible": true,
-    "locked": false,
-    "position": "bottom-left"
-  }
-}
+- Spotify Developer Account ([get credentials](https://developer.spotify.com/dashboard))
+
+- Wails v2 CLI
+
 ```
+
+# Install Wails CLI
+
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Clone and build
+
+git clone https://github.com/Skufu/lyrics-overlay.git
+
+cd lyrics-overlay
+
+go mod tidy
+
+# Development mode (hot reload)
+
+wails dev
+
+# Production build
+
+wails build
+
+```
+
+**Windows quick build:** Double-click `build.bat` or run `./build.bat`
+
+## Configuration
+
+On first run, a config file is created at `~/.spotly/config.json`:
+
+```
+
+{
+
+  "spotify_client_id": "your_client_id",
+
+  "spotify_client_secret": "your_client_secret",
+
+  "redirect_uri": "http://127.0.0.1:8080/callback",
+
+  "port": 8080,
+
+  "genius_token": "optional_genius_token",
+
+  "overlay": {
+
+    "x": 100,
+
+    "y": 100,
+
+    "width": 600,
+
+    "height": 120,
+
+    "opacity": 0.9,
+
+    "font_size": 16,
+
+    "visible": true,
+
+    "locked": false,
+
+    "position": "bottom-left",
+
+    "sync_offset": 350
+
+  }
+
+}
+
+```
+
+**Get your Spotify credentials:**
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+
+2. Create a new app
+
+3. Add `http://127.0.0.1:8080/callback` to Redirect URIs
+
+4. Copy Client ID and Secret to your config
+
+**Windows config path:** `C:\Users\<YOU>\.spotly\config.json`
 
 ## Usage
 
-1. **First Run:**
-   - Launch the app (`spotly.exe` or `wails dev` during development)
-   - In the overlay, click "Connect with Spotify"
-   - Complete the browser authentication
-   - Start playing a song in Spotify
-   - The overlay will show the lyrics:
-     - LRCLIB first (synced if available),
-     - Genius scraped text as fallback (unsynced)
+### Controls
 
-2. **Controls:**
-   - Hover the overlay to show controls
-   - Toggle visibility, lock position, adjust opacity and font size from the UI
+Hover over the overlay to reveal controls:
 
-3. **Window Management:**
-   - Drag to reposition (when unlocked)
-   - Settings persist between sessions
-   - Always stays on top of games
+- **Drag** – reposition the window (when unlocked)
+
+- **Settings gear** – adjust font size, sync offset, toggle karaoke mode
+
+- **Lock icon** – prevent accidental repositioning while gaming
+
+- **Refresh** – force re-fetch current track and lyrics
+
+### Sync Offset
+
+Adjust the timing slider if lyrics appear too early or too late:
+
+- Positive values → lyrics appear earlier
+
+- Negative values → lyrics appear later
+
+Default offset is 350ms, which works well for most setups.
 
 ## Architecture
 
 ```
-main.go               # Main application entry (Wails app)
-internal/
-  ├── auth/          # Spotify OAuth2 flow
-  ├── cache/         # LRU lyrics cache
-  ├── config/        # Configuration management
-  ├── lyrics/        # LyricsProvider interface & implementations
-  ├── overlay/       # Window management & display logic
-  └── spotify/       # API client & polling service
-frontend/dist/       # Wails frontend (HTML/CSS/JS)
+
+lyrics-overlay/
+
+├── main.go                 # Wails application entry point
+
+├── internal/
+
+│   ├── auth/              # Spotify OAuth2 flow
+
+│   ├── cache/             # LRU lyrics cache
+
+│   ├── config/            # Configuration management
+
+│   ├── lyrics/            # Provider interface (LRCLIB, Genius)
+
+│   ├── overlay/           # Window management & display
+
+│   └── spotify/           # API client & polling service
+
+└── frontend/dist/         # HTML/CSS/JS overlay UI
+
 ```
 
-## Project Status
+### API Endpoints Used
 
-**Current State:** Core functionality implemented, working on final integration and testing.
+| Service | Endpoint | Purpose |
 
-**Next Steps:**
-1. Complete dependency setup and first successful build
-2. Test OAuth flow and Spotify API integration
-3. Implement global hotkeys for gaming compatibility
-4. Package Windows executable
-5. Test overlay behavior in fullscreen games
+|---------|----------|---------|
 
-## API Endpoints Used
+| Spotify | `GET /me/player/currently-playing` | Current track & progress |
 
-- `GET /me/player/currently-playing` - Current track and progress
-- `GET /me/player` - Player state (optional, for enhanced device info)
-- LRCLIB API: `GET /api/get?track_name=...&artist_name=...` and `GET /api/search?track_name=...&artist_name=...`
-- Genius API for search (lyrics scraped from song page as fallback)
+| Spotify | `GET /me/player` | Player state |
+
+| LRCLIB | `GET /api/get` | Synced lyrics lookup |
+
+| LRCLIB | `GET /api/search` | Lyrics search fallback |
+
+| Genius | Search API + scraping | Plain text lyrics fallback |
 
 ## Troubleshooting
 
-### Common Issues
+### OAuth callback fails
 
-1. **"Could not import github.com/wailsapp/wails/v2"**
-   ```bash
-   go get github.com/wailsapp/wails/v2@latest
-   go mod tidy
-   ```
+- Ensure redirect URI matches exactly in Spotify Dashboard: `http://127.0.0.1:8080/callback`
 
-2. **OAuth callback fails:**
-   - Ensure redirect URI matches exactly in Spotify Dashboard
-   - Check firewall isn't blocking port 8080
-   - Try different port in config
+- Check if port 8080 is available (close other apps using it)
 
-3. **Rate limiting (429 errors):**
-   - App implements exponential backoff
-   - Default polling is 3-5 seconds
-   - Increase `POLL_INTERVAL` if needed
+- Temporarily disable firewall and test
 
-4. **No lyrics found:**
-   - LRCLIB may not have the track; Genius fallback needs a valid `genius_token`
-   - Some tracks may not have lyrics available
-   - Ensure artist/title metadata is clean (the app normalizes common suffixes)
+- Try changing `port` in config to `8081` or `9000`
 
-5. **Shows translation or wrong text:**
-   - LRCLIB should return original lyrics when available
-   - Genius fallback filters translation blocks; report specific tracks if you see issues
+### No lyrics found
+
+- LRCLIB is tried first (covers most popular songs)
+
+- Add `genius_token` to config for fallback coverage ([get token](https://genius.com/api-clients))
+
+- Some tracks legitimately don't have lyrics available
+
+- App normalizes artist/title metadata automatically
+
+### Rate limiting (429 errors)
+
+- Built-in exponential backoff handles this automatically
+
+- Default polling interval is 4 seconds
+
+- Check `~/.spotly/debug.log` if DEBUG mode is enabled
+
+### Build errors
+
+```
+
+go get github.com/wailsapp/wails/v2@latest
+
+go mod tidy
+
+wails doctor  # Check Wails dependencies
+
+```
+
+### Overlay not visible in fullscreen games
+
+- Try running the game in borderless windowed mode
+
+- Some anti-cheat systems block overlays (expected behavior)
+
+- Check game's overlay compatibility settings
+
+## Roadmap
+
+- [ ] Global hotkeys for hands-free control
+
+- [ ] Additional lyrics providers (Musixmatch, AZLyrics)
+
+- [ ] Cross-platform support (macOS, Linux)
+
+- [ ] Multiple monitor positioning
+
+- [ ] Discord Rich Presence integration
+
+- [ ] Custom themes and styling
+
+- [ ] Auto-hide when no music playing
 
 ## Contributing
 
-This is a personal-use project, but contributions are welcome for:
+Contributions are welcome! Areas of interest:
+
 - Additional lyrics providers
-- Cross-platform compatibility fixes
+
+- Cross-platform compatibility (macOS/Linux)
+
+- Global hotkey implementation
+
 - UI/UX improvements
+
 - Performance optimizations
+
+- Bug fixes and testing
+
+See [contributing](https://github.com/Skufu/lyrics-overlay/contribute).
+
+## Acknowledgments
+
+SpotLy Overlay is built with the following open source projects:
+
+- [Wails](https://wails.io/) – Go desktop application framework
+
+- [LRCLIB](https://lrclib.net/) – free synchronized lyrics API
+
+- [Genius](https://genius.com/) – lyrics database and API
+
+- [Spotify Web API](https://developer.spotify.com/documentation/web-api/) – music playback integration
 
 ## License
 
-MIT License - see LICENSE file for details.
+[MIT](https://github.com/Skufu/lyrics-overlay/blob/main/LICENSE)
+
+---
+
+Part of your karaoke gaming setup.
+
+Made with love for gamers who can't stop singing
