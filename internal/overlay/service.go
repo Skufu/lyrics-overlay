@@ -211,12 +211,12 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 
 // DisplayInfo holds the information to display in the overlay
 type DisplayInfo struct {
-	CurrentLine     string `json:"current_line"`
-	NextLine        string `json:"next_line"`
-	IsPlaying       bool   `json:"is_playing"`
-	LineDuration    int64  `json:"line_duration_ms"`    // Duration of current line in ms
-	LineProgress    int64  `json:"line_progress_ms"`    // Progress into current line in ms
-	LineStartTime   int64  `json:"line_start_time_ms"`  // Timestamp when current line started
+	CurrentLine   string `json:"current_line"`
+	NextLine      string `json:"next_line"`
+	IsPlaying     bool   `json:"is_playing"`
+	LineDuration  int64  `json:"line_duration_ms"`   // Duration of current line in ms
+	LineProgress  int64  `json:"line_progress_ms"`   // Progress into current line in ms
+	LineStartTime int64  `json:"line_start_time_ms"` // Timestamp when current line started
 }
 
 // ToggleVisibility toggles the overlay visibility

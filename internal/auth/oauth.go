@@ -37,11 +37,11 @@ func openBrowser(url string) error {
 
 // Service handles Spotify OAuth2 authentication
 type Service struct {
-	config       *config.Service
+	config        *config.Service
 	authenticator *spotifyauth.Authenticator
-	client       *spotify.Client
-	server       *http.Server
-	state        string
+	client        *spotify.Client
+	server        *http.Server
+	state         string
 }
 
 // New creates a new auth service
@@ -95,7 +95,7 @@ func generateRandomState() (string, error) {
 // createClientFromStoredTokens creates a Spotify client from stored tokens
 func (s *Service) createClientFromStoredTokens() {
 	cfg := s.config.Get()
-	
+
 	token := &oauth2.Token{
 		AccessToken:  cfg.Auth.AccessToken,
 		RefreshToken: cfg.Auth.RefreshToken,

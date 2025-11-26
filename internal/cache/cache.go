@@ -12,11 +12,11 @@ import (
 type Service struct {
 	mu          sync.RWMutex
 	maxSize     int
-	trackCache  map[string]*cacheEntry      // Cache by Spotify track ID
-	keyCache    map[string]*cacheEntry      // Cache by normalized "artist|title"
-	lruList     *list.List                  // LRU list for eviction
-	trackToElem map[string]*list.Element    // Map track ID to list element
-	keyToElem   map[string]*list.Element    // Map cache key to list element
+	trackCache  map[string]*cacheEntry   // Cache by Spotify track ID
+	keyCache    map[string]*cacheEntry   // Cache by normalized "artist|title"
+	lruList     *list.List               // LRU list for eviction
+	trackToElem map[string]*list.Element // Map track ID to list element
+	keyToElem   map[string]*list.Element // Map cache key to list element
 }
 
 // cacheEntry holds cached lyrics data with metadata
@@ -103,7 +103,7 @@ func (s *Service) SetByTrackID(trackID string, lyrics *overlay.LyricsData) {
 		// Update existing entry
 		existingEntry.lyrics = lyrics
 		existingEntry.timestamp = time.Now()
-		
+
 		// Move to front
 		if elem, exists := s.trackToElem[trackID]; exists {
 			s.lruList.MoveToFront(elem)
@@ -139,7 +139,7 @@ func (s *Service) SetByKey(cacheKey string, lyrics *overlay.LyricsData) {
 		// Update existing entry
 		existingEntry.lyrics = lyrics
 		existingEntry.timestamp = time.Now()
-		
+
 		// Move to front
 		if elem, exists := s.keyToElem[cacheKey]; exists {
 			s.lruList.MoveToFront(elem)
