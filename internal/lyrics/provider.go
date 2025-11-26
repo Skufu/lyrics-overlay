@@ -3,7 +3,6 @@ package lyrics
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"log"
 	"net/http"
@@ -12,8 +11,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	nethtml "golang.org/x/net/html"
 
 	"lyrics-overlay/internal/cache"
 	"lyrics-overlay/internal/overlay"
@@ -33,7 +30,7 @@ type Service struct {
 }
 
 // New creates a new lyrics service
-func New(cacheSvc *cache.Service, geniusToken string) *Service {
+func New(cacheSvc *cache.Service) *Service {
 	service := &Service{
 		providers: make([]LyricsProvider, 0),
 		cache:     cacheSvc,
@@ -45,12 +42,6 @@ func New(cacheSvc *cache.Service, geniusToken string) *Service {
 	// Add LRCLIB provider first (often returns synced lyrics)
 	lrclibProvider := NewLRCLibProvider(service.client)
 	service.AddProvider(lrclibProvider)
-
-	// Add Genius provider next if token is available
-	if geniusToken != "" {
-		geniusProvider := NewGeniusProvider(geniusToken, service.client)
-		service.AddProvider(geniusProvider)
-	}
 
 	// Add demo provider as a fallback
 	demoProvider := NewDemoProvider()
@@ -154,204 +145,6 @@ func normalizeString(text string) string {
 	return strings.TrimSpace(text)
 }
 
-// GeniusProvider implements lyrics fetching from Genius
-type GeniusProvider struct {
-	token   string
-	client  *http.Client
-	baseURL string
-}
-
-// NewGeniusProvider creates a new Genius provider
-func NewGeniusProvider(token string, client *http.Client) *GeniusProvider {
-	return &GeniusProvider{
-		token:   token,
-		client:  client,
-		baseURL: "https://api.genius.com",
-	}
-}
-
-// GetName returns the provider name
-func (g *GeniusProvider) GetName() string {
-	return "Genius"
-}
-
-// SearchLyrics searches for lyrics on Genius
-func (g *GeniusProvider) SearchLyrics(artist, title string) (*overlay.LyricsData, error) {
-	// Search for the song
-	searchQuery := fmt.Sprintf("%s %s", artist, title)
-	songInfo, err := g.searchSong(searchQuery)
-	if err != nil {
-		return nil, fmt.Errorf("genius search failed: %w", err)
-	}
-
-	if songInfo == nil {
-		return nil, fmt.Errorf("song not found on Genius")
-	}
-
-	// Fetch and parse actual lyrics from the Genius song page
-	rawText, err := g.fetchLyricsFromPage(songInfo.URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch lyrics: %w", err)
-	}
-
-	cleaned := strings.TrimSpace(rawText)
-	if cleaned == "" {
-		return nil, fmt.Errorf("no lyrics found on Genius page")
-	}
-
-	lines := textToLyricsLines(cleaned)
-	if len(lines) == 0 {
-		return nil, fmt.Errorf("no usable lyrics lines parsed")
-	}
-
-	lyrics := &overlay.LyricsData{
-		Source:    "Genius",
-		IsSynced:  false,
-		FetchedAt: time.Now(),
-		Lines:     lines,
-	}
-
-	return lyrics, nil
-}
-
-// fetchLyricsFromPage downloads and extracts lyrics text from a Genius song page URL
-func (g *GeniusProvider) fetchLyricsFromPage(pageURL string) (string, error) {
-	// Create request
-	req, err := http.NewRequest("GET", pageURL, nil)
-	if err != nil {
-		return "", err
-	}
-
-	// Set headers to look like a regular browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-
-	resp, err := g.client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("genius page returned status %d", resp.StatusCode)
-	}
-
-	// Parse HTML
-	root, err := nethtml.Parse(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse genius page: %w", err)
-	}
-
-	// Find containers with data-lyrics-container="true"
-	containers := make([]*nethtml.Node, 0, 8)
-	findNodes(root, func(n *nethtml.Node) bool {
-		if n.Type == nethtml.ElementNode {
-			var hasContainer bool
-			lang := ""
-			for _, a := range n.Attr {
-				if a.Key == "data-lyrics-container" && (a.Val == "true" || a.Val == "") {
-					hasContainer = true
-				}
-				if a.Key == "data-lyrics-language" {
-					lang = strings.ToLower(a.Val)
-				}
-			}
-			if hasContainer {
-				// Prefer English or unspecified language, skip obvious translation blocks
-				if lang == "" || strings.HasPrefix(lang, "en") {
-					return true
-				}
-			}
-		}
-		return false
-	}, &containers)
-
-	// Fallback: look for class containing "Lyrics__Container" (filter translations/footers)
-	if len(containers) == 0 {
-		findNodes(root, func(n *nethtml.Node) bool {
-			if n.Type == nethtml.ElementNode {
-				var cls string
-				for _, a := range n.Attr {
-					if a.Key == "class" {
-						cls = a.Val
-					}
-				}
-				if strings.Contains(cls, "Lyrics__Container") &&
-					!strings.Contains(strings.ToLower(cls), "translation") &&
-					!strings.Contains(strings.ToLower(cls), "contributor") &&
-					!strings.Contains(strings.ToLower(cls), "footer") {
-					return true
-				}
-			}
-			return false
-		}, &containers)
-	}
-
-	if len(containers) == 0 {
-		return "", fmt.Errorf("could not locate lyrics container")
-	}
-
-	var sb strings.Builder
-	for i, c := range containers {
-		if i > 0 {
-			sb.WriteString("\n")
-		}
-		writeNodeText(c, &sb)
-	}
-
-	text := sb.String()
-	text = html.UnescapeString(text)
-
-	// Normalize line endings and collapse excessive blank lines
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	text = strings.ReplaceAll(text, "\r", "\n")
-	reNL := regexp.MustCompile(`\n{3,}`)
-	text = reNL.ReplaceAllString(text, "\n\n")
-
-	return text, nil
-}
-
-// findNodes traverses the HTML node tree and collects nodes matching the predicate
-func findNodes(n *nethtml.Node, pred func(*nethtml.Node) bool, out *[]*nethtml.Node) {
-	if n == nil {
-		return
-	}
-	if pred(n) {
-		*out = append(*out, n)
-	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		findNodes(c, pred, out)
-	}
-}
-
-// writeNodeText writes the visible text content of an HTML node to the builder
-func writeNodeText(n *nethtml.Node, sb *strings.Builder) {
-	if n == nil {
-		return
-	}
-	switch n.Type {
-	case nethtml.TextNode:
-		sb.WriteString(n.Data)
-	case nethtml.ElementNode:
-		// Insert newlines for line/paragraph breaks
-		switch strings.ToLower(n.Data) {
-		case "br":
-			sb.WriteString("\n")
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			writeNodeText(c, sb)
-		}
-		switch strings.ToLower(n.Data) {
-		case "p", "div":
-			sb.WriteString("\n")
-		}
-	default:
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			writeNodeText(c, sb)
-		}
-	}
-}
-
 // textToLyricsLines converts raw lyrics text into overlay lines, filtering noise
 func textToLyricsLines(text string) []overlay.LyricsLine {
 	// Split lines, trim, and filter common non-lyrics artifacts
@@ -442,85 +235,6 @@ func textToLyricsLines(text string) []overlay.LyricsLine {
 	}
 
 	return lines
-}
-
-// GeniusSearchResponse represents the Genius API search response
-type GeniusSearchResponse struct {
-	Meta struct {
-		Status int `json:"status"`
-	} `json:"meta"`
-	Response struct {
-		Hits []struct {
-			Result struct {
-				ID            int    `json:"id"`
-				Title         string `json:"title"`
-				URL           string `json:"url"`
-				PrimaryArtist struct {
-					Name string `json:"name"`
-				} `json:"primary_artist"`
-			} `json:"result"`
-		} `json:"hits"`
-	} `json:"response"`
-}
-
-// SongInfo holds basic song information from Genius
-type SongInfo struct {
-	ID     int
-	Title  string
-	Artist string
-	URL    string
-}
-
-// searchSong searches for a song on Genius
-func (g *GeniusProvider) searchSong(query string) (*SongInfo, error) {
-	// Prepare search URL
-	searchURL := fmt.Sprintf("%s/search?q=%s", g.baseURL, url.QueryEscape(query))
-
-	// Create request
-	req, err := http.NewRequest("GET", searchURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add authorization header
-	req.Header.Set("Authorization", "Bearer "+g.token)
-	req.Header.Set("User-Agent", "SpotLy/1.0")
-
-	// Make request
-	resp, err := g.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("genius API returned status %d", resp.StatusCode)
-	}
-
-	// Parse response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var searchResp GeniusSearchResponse
-	if err := json.Unmarshal(body, &searchResp); err != nil {
-		return nil, err
-	}
-
-	// Find best match
-	if len(searchResp.Response.Hits) == 0 {
-		return nil, nil
-	}
-
-	// Return the first hit for now (could implement better matching logic)
-	hit := searchResp.Response.Hits[0].Result
-	return &SongInfo{
-		ID:     hit.ID,
-		Title:  hit.Title,
-		Artist: hit.PrimaryArtist.Name,
-		URL:    hit.URL,
-	}, nil
 }
 
 // LRCLibProvider implements lyrics fetching from LRCLIB

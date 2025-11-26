@@ -15,9 +15,6 @@ type Config struct {
 	RedirectURI         string `json:"redirect_uri"`
 	Port                int    `json:"port"`
 
-	// Genius API settings
-	GeniusToken string `json:"genius_token"`
-
 	// Overlay settings
 	Overlay OverlayConfig `json:"overlay"`
 
@@ -140,7 +137,7 @@ func (s *Service) Save() error {
 
 // Path returns the full path to the configuration file
 func (s *Service) Path() string {
-    return s.filePath
+	return s.filePath
 }
 
 // UpdateOverlay updates overlay configuration

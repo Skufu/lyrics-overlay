@@ -85,8 +85,7 @@ func (a *App) OnStartup(ctx context.Context) {
 	a.auth = authSvc
 
 	// Initialize lyrics service
-	lyricsConfig := configSvc.Get()
-	lyricsSvc := lyrics.New(cacheSvc, lyricsConfig.GeniusToken)
+	lyricsSvc := lyrics.New(cacheSvc)
 	a.lyrics = lyricsSvc
 
 	// Initialize Spotify service

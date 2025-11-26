@@ -274,23 +274,16 @@ wails doctor  # Check Wails dependencies
 
 - [ ] Global hotkeys for hands-free control
 
-- [ ] Additional lyrics providers (Musixmatch, AZLyrics)
-
 - [ ] Cross-platform support (macOS, Linux)
 
 - [ ] Multiple monitor positioning
 
-- [ ] Discord Rich Presence integration
-
 - [ ] Custom themes and styling
 
-- [ ] Auto-hide when no music playing
 
 ## Contributing
 
 Contributions are welcome! Areas of interest:
-
-- Additional lyrics providers
 
 - Cross-platform compatibility (macOS/Linux)
 
@@ -312,8 +305,6 @@ SpotLy Overlay is built with the following open source projects:
 
 - [LRCLIB](https://lrclib.net/) – free synchronized lyrics API
 
-- [Genius](https://genius.com/) – lyrics database and API
-
 - [Spotify Web API](https://developer.spotify.com/documentation/web-api/) – music playback integration
 
 ## License
@@ -324,4 +315,3 @@ SpotLy Overlay is built with the following open source projects:
 
 Part of your karaoke gaming setup.
 
-Made with love for gamers who can't stop singing
