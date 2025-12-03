@@ -5,7 +5,6 @@ go 1.24.1
 require (
 	github.com/wailsapp/wails/v2 v2.11.0
 	github.com/zmb3/spotify/v2 v2.4.3
-	golang.org/x/net v0.35.0
 	golang.org/x/oauth2 v0.33.0
 	golang.org/x/sys v0.30.0
 )
@@ -35,5 +34,6 @@ require (
 	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )

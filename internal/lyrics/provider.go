@@ -127,6 +127,9 @@ func normalizeString(text string) string {
 		`\s*\(.*?edit.*?\)`,    // (edit)
 		`\s*-\s*remaster.*`,    // - remaster
 		`\s*-\s*remix.*`,       // - remix
+		`\s*-\s*radio\s+edit.*`, // - Radio Edit
+		`\s*-\s*.*\s+edit.*`,   // - ... Edit
+		`\s*-\s*.*\s+version.*`, // - ... Version
 	}
 
 	for _, pattern := range patterns {
@@ -606,4 +609,16 @@ func (d *DemoProvider) SearchLyrics(artist, title string) (*overlay.LyricsData, 
 	}
 
 	return lyrics, nil
+}
+
+// ParseSyncedLyrics parses LRC formatted synced lyrics into timestamped lines.
+// This is a public wrapper for testing purposes.
+func ParseSyncedLyrics(lrc string) []overlay.LyricsLine {
+	return parseLRCToLines(lrc)
+}
+
+// NormalizeTitle normalizes a song title by removing common patterns and special characters.
+// This is a public wrapper for testing purposes.
+func NormalizeTitle(title string) string {
+	return normalizeString(title)
 }
