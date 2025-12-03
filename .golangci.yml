@@ -10,12 +10,6 @@ linters:
     - gofmt
     - goimports
     - misspell
-  # Disable stricter linters that may have false positives
-  disable:
-    - typecheck
-    - unparam
-    - gocritic
-    - revive
 
 linters-settings:
   goimports:
