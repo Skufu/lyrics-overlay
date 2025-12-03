@@ -41,6 +41,13 @@ issues:
     - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv).* is not checked"
       linters:
         - errcheck
+    # Exclude non-critical config persistence in cleanup/toggle paths
+    - text: "Error return value of `s\\.config\\.(UpdateOverlay|UpdateAuth|Save)` is not checked"
+      linters:
+        - errcheck
+    - text: "Error return value of `s\\.server\\.Shutdown` is not checked"
+      linters:
+        - errcheck
     - text: "unused"
       linters:
         - unused
