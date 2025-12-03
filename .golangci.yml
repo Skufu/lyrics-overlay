@@ -1,0 +1,26 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - unparam
+    - gocritic
+    - revive
+  # typecheck is disabled because it fails on Windows-specific imports
+  # when running on Linux (build constraints exclude Windows packages)
+  disable:
+    - typecheck
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+
