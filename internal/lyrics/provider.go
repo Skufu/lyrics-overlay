@@ -118,17 +118,17 @@ func normalizeString(text string) string {
 
 	// Remove common patterns
 	patterns := []string{
-		`\s*\(feat\..*?\)`,     // (feat. ...)
-		`\s*\(ft\..*?\)`,       // (ft. ...)
-		`\s*\(featuring.*?\)`,  // (featuring ...)
-		`\s*\[.*?\]`,           // [anything]
-		`\s*\(.*?remix.*?\)`,   // (remix)
-		`\s*\(.*?version.*?\)`, // (version)
-		`\s*\(.*?edit.*?\)`,    // (edit)
-		`\s*-\s*remaster.*`,    // - remaster
-		`\s*-\s*remix.*`,       // - remix
+		`\s*\(feat\..*?\)`,      // (feat. ...)
+		`\s*\(ft\..*?\)`,        // (ft. ...)
+		`\s*\(featuring.*?\)`,   // (featuring ...)
+		`\s*\[.*?\]`,            // [anything]
+		`\s*\(.*?remix.*?\)`,    // (remix)
+		`\s*\(.*?version.*?\)`,  // (version)
+		`\s*\(.*?edit.*?\)`,     // (edit)
+		`\s*-\s*remaster.*`,     // - remaster
+		`\s*-\s*remix.*`,        // - remix
 		`\s*-\s*radio\s+edit.*`, // - Radio Edit
-		`\s*-\s*.*\s+edit.*`,   // - ... Edit
+		`\s*-\s*.*\s+edit.*`,    // - ... Edit
 		`\s*-\s*.*\s+version.*`, // - ... Version
 	}
 
@@ -186,7 +186,7 @@ func textToLyricsLines(text string) []overlay.LyricsLine {
 		// Skip standalone language names often listed under translations
 		langWords := map[string]struct{}{
 			"cesky": {}, "česky": {}, "čeština": {}, "deutsch": {}, "français": {}, "francais": {},
-			"español": {}, "espanol": {}, "português": {}, "portugues": {}, "italiano": {}, "polski": {},
+			"español": {}, "espanol": {}, "português": {}, "portuguese": {}, "italiano": {}, "polski": {},
 			"nederlands": {}, "svenska": {}, "suomi": {}, "dansk": {}, "norsk": {}, "русский": {},
 			"русский язык": {}, "bahasa": {}, "bahasa indonesia": {}, "tiếng": {}, "tiếng việt": {}, "tieng viet": {},
 			"türkçe": {}, "turkce": {}, "العربية": {}, "hebrew": {}, "עברית": {},

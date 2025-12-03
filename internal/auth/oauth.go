@@ -243,7 +243,7 @@ func (s *Service) stopCallbackServer() {
 	if s.server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		s.server.Shutdown(ctx)
+		_ = s.server.Shutdown(ctx)
 		s.server = nil
 	}
 }
@@ -300,7 +300,7 @@ func (s *Service) refreshToken() error {
 func (s *Service) clearTokens() {
 	cfg := s.config.Get()
 	cfg.Auth = config.AuthConfig{}
-	s.config.UpdateAuth(cfg.Auth)
+	_ = s.config.UpdateAuth(cfg.Auth)
 	s.client = nil
 }
 

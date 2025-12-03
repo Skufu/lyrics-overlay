@@ -195,4 +195,3 @@ func TestGetDefaultConfig(t *testing.T) {
 		t.Errorf("Expected default font size 16, got %d", cfg.Overlay.FontSize)
 	}
 }
-

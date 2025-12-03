@@ -156,4 +156,3 @@ func TestDemoProvider_GetName(t *testing.T) {
 		t.Errorf("Expected provider name 'Demo', got %q", provider.GetName())
 	}
 }
-

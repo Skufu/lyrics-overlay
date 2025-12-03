@@ -159,4 +159,3 @@ func (a *App) startClickThroughMonitor() {
 		}
 	}()
 }
-

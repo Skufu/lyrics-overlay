@@ -229,7 +229,7 @@ func (s *Service) ToggleVisibility() bool {
 	// Update config
 	cfg := s.config.Get()
 	cfg.Overlay.Visible = s.isVisible
-	s.config.UpdateOverlay(cfg.Overlay)
+	_ = s.config.UpdateOverlay(cfg.Overlay)
 
 	return s.isVisible
 }
@@ -251,7 +251,7 @@ func (s *Service) SetVisibility(visible bool) {
 	// Update config
 	cfg := s.config.Get()
 	cfg.Overlay.Visible = visible
-	s.config.UpdateOverlay(cfg.Overlay)
+	_ = s.config.UpdateOverlay(cfg.Overlay)
 }
 
 // GetOverlayConfig returns current overlay configuration
@@ -267,5 +267,5 @@ func (s *Service) UpdateOverlayConfig(overlayConfig config.OverlayConfig) error 
 // Shutdown performs cleanup
 func (s *Service) Shutdown() {
 	// Save current state
-	s.config.Save()
+	_ = s.config.Save()
 }
