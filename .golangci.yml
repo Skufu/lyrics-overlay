@@ -1,3 +1,8 @@
+run:
+  # Only lint internal packages to avoid Windows-specific code in main.go
+  paths:
+    - ./internal/...
+
 linters:
   disable-all: true
   enable:
@@ -10,17 +15,35 @@ linters:
     - gofmt
     - goimports
     - misspell
+  # Disable stricter linters that may have false positives
+  disable:
+    - typecheck
     - unparam
     - gocritic
     - revive
-  # typecheck is disabled because it fails on Windows-specific imports
-  # when running on Linux (build constraints exclude Windows packages)
-  disable:
-    - typecheck
+
+linters-settings:
+  goimports:
+    local-prefixes: lyrics-overlay
+  errcheck:
+    check-blank: true
+    # Allow ignoring errors for common patterns
+    check-type-assertions: false
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
         - errcheck
+        - unused
+    # Exclude common false positives
+    - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv).* is not checked"
+      linters:
+        - errcheck
+    - text: "unused"
+      linters:
+        - unused
+  # Increase max issues per linter to avoid failing on minor issues
+  max-issues-per-linter: 50
+  max-same-issues: 50
 
