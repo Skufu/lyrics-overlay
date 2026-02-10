@@ -12,9 +12,7 @@ a transparent, always-on-top lyrics overlay for spotify. i built this because i 
 ## demo
 
 
-[![SpotLy Demo](spotly-demo-thumb.png)](https://raw.githubusercontent.com/Skufu/lyrics-overlay/main/spotly-demo.webm)
-
-> click the image above to watch the demo ☝️
+https://github.com/user-attachments/assets/dbe54466-4f80-46d0-83f3-39ab9cf7f812
 
 ## what it does
 
