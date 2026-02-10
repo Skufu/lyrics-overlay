@@ -98,36 +98,19 @@
             display: inline-block;
         }
 
-        /* Karaoke highlight effect */
+        /* Karaoke highlight effect — per-character span coloring */
         .current-line.karaoke {
-            background: linear-gradient(
-                90deg,
-                var(--spotify-green) var(--karaoke-progress, 0%),
-                #ffffff var(--karaoke-progress, 0%)
-            );
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
             text-shadow: none;
             filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8)) drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.6));
         }
 
-        .current-line.karaoke::before {
-            content: attr(data-text);
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: linear-gradient(
-                90deg,
-                var(--spotify-green) var(--karaoke-progress, 0%),
-                transparent var(--karaoke-progress, 0%)
-            );
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: blur(8px);
-            opacity: 0.6;
-            z-index: -1;
+        .current-line.karaoke .karaoke-char {
+            color: #ffffff;
+            transition: color 0.05s linear;
+        }
+
+        .current-line.karaoke .karaoke-char.karaoke-sung {
+            color: var(--spotify-green);
         }
 
         .next-line {
@@ -1313,6 +1296,8 @@
         function updateOpacity(value) {
             const el = document.getElementById('opacity-value');
             if (el) el.textContent = value + '%';
+            const lyricsDisplay = document.querySelector('.lyrics-display');
+            if (lyricsDisplay) lyricsDisplay.style.opacity = value / 100;
             window.go.main.App.UpdateOverlayConfig({ opacity: value / 100 });
         }
 
@@ -1520,6 +1505,8 @@
                         const pct = Math.round(cfg.opacity * 100);
                         opacitySlider.value = pct;
                         if (opacityValue) opacityValue.textContent = pct + '%';
+                        const lyricsDisplay = document.querySelector('.lyrics-display');
+                        if (lyricsDisplay) lyricsDisplay.style.opacity = cfg.opacity;
                     }
                     // Karaoke mode
                     if (cfg.karaoke_enabled !== undefined) {
@@ -1590,13 +1577,21 @@
                     if (lastCurrentLine !== newCurrent && lyricsDisplay) {
                         lyricsDisplay.classList.add('updating');
                         if (currentEl) {
-                            currentEl.textContent = newCurrent;
-                            currentEl.setAttribute('data-text', newCurrent);
-                            // Enable karaoke mode
+                            // Enable karaoke mode — wrap each character in a span
                             if (karaokeEnabled && info.is_playing && info.line_duration_ms > 0) {
+                                currentEl.innerHTML = '';
+                                for (let i = 0; i < newCurrent.length; i++) {
+                                    const span = document.createElement('span');
+                                    span.className = 'karaoke-char';
+                                    span.textContent = newCurrent[i];
+                                    currentEl.appendChild(span);
+                                }
                                 currentEl.classList.add('karaoke');
                                 lastLineStartTime = info.line_start_time_ms;
+                            } else {
+                                currentEl.textContent = newCurrent;
                             }
+                            currentEl.setAttribute('data-text', newCurrent);
                         }
                         if (nextEl) nextEl.textContent = newNext;
                         lastCurrentLine = newCurrent;
@@ -1607,10 +1602,20 @@
                         lastNextLine = newNext;
                     }
 
-                    // Update karaoke progress (smooth linear sweep)
+                    // Update karaoke progress (per-character highlighting)
                     if (currentEl && karaokeEnabled && info.is_playing && info.line_duration_ms > 0) {
-                        const progress = Math.min(100, Math.max(0, (info.line_progress_ms / info.line_duration_ms) * 100));
-                        currentEl.style.setProperty('--karaoke-progress', progress + '%');
+                        const progress = Math.min(1, Math.max(0, info.line_progress_ms / info.line_duration_ms));
+                        const chars = currentEl.querySelectorAll('.karaoke-char');
+                        if (chars.length > 0) {
+                            const charIdx = Math.floor(progress * chars.length);
+                            chars.forEach((c, i) => {
+                                if (i < charIdx) {
+                                    c.classList.add('karaoke-sung');
+                                } else {
+                                    c.classList.remove('karaoke-sung');
+                                }
+                            });
+                        }
                     } else if (currentEl && !info.is_playing) {
                         // Pause karaoke when not playing
                         currentEl.classList.remove('karaoke');
@@ -1715,10 +1720,21 @@
             }
             if (currentEl) {
                 if (karaokeEnabled) {
+                    // Re-wrap text in character spans for karaoke
+                    const text = currentEl.textContent;
+                    currentEl.innerHTML = '';
+                    for (let i = 0; i < text.length; i++) {
+                        const span = document.createElement('span');
+                        span.className = 'karaoke-char';
+                        span.textContent = text[i];
+                        currentEl.appendChild(span);
+                    }
                     currentEl.classList.add('karaoke');
                 } else {
+                    // Restore plain text when disabling karaoke
+                    const text = currentEl.textContent;
                     currentEl.classList.remove('karaoke');
-                    currentEl.style.removeProperty('--karaoke-progress');
+                    currentEl.textContent = text;
                 }
             }
             // Persist karaoke setting to config
