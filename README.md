@@ -12,7 +12,7 @@ a transparent, always-on-top lyrics overlay for spotify. i built this because i 
 ## demo
 
 
-<video src="spotly-demo.mp4" width="100%" controls></video>
+<video src="spotly-demo.webm" width="100%" controls></video>
 
 ## what it does
 
