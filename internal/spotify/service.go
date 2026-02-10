@@ -25,6 +25,8 @@ type Service struct {
 	maxInterval       time.Duration
 	lastTrackID       string
 	consecutiveErrors int
+	consecutiveNoPlay int                // Track consecutive no-playback responses
+	lyricsCancel      context.CancelFunc // Cancel in-flight lyrics fetch
 }
 
 // New creates a new Spotify service
@@ -34,8 +36,8 @@ func New(authSvc *auth.Service, overlaySvc *overlay.Service, lyricsSvc *lyrics.S
 		overlay:         overlaySvc,
 		lyrics:          lyricsSvc,
 		stopChan:        make(chan struct{}),
-		baseInterval:    5 * time.Second,  // Faster polling when playing
-		currentInterval: 5 * time.Second,  // Current polling interval
+		baseInterval:    2 * time.Second,  // Fast polling for responsive track changes
+		currentInterval: 2 * time.Second,  // Current polling interval
 		backoffFactor:   1.5,              // Exponential backoff factor
 		maxInterval:     30 * time.Second, // Maximum polling interval
 	}
@@ -81,8 +83,8 @@ func (s *Service) pollLoop() {
 func (s *Service) pollCurrentlyPlaying() {
 	client := s.auth.GetClient()
 	if client == nil {
+		// Don't clear the track — just back off and retry
 		s.adjustInterval(false, true)
-		s.overlay.SetCurrentTrack(nil)
 		return
 	}
 
@@ -107,9 +109,20 @@ func (s *Service) pollCurrentlyPlaying() {
 		s.lastTrackID = track.ID
 		s.resetInterval()
 
-		// Fetch lyrics on track change
+		// Cancel any in-flight lyrics fetch before starting new one
+		if s.lyricsCancel != nil {
+			s.lyricsCancel()
+			s.lyricsCancel = nil
+		}
+
+		// Clear stale lyrics immediately so UI shows loading state
+		s.overlay.SetCurrentLyrics(nil)
+
+		// Fetch lyrics with cancellable context
 		if s.lyrics != nil {
-			go s.fetchAndSetLyrics(track)
+			ctx, cancel := context.WithCancel(context.Background())
+			s.lyricsCancel = cancel
+			go s.fetchAndSetLyrics(ctx, track)
 		}
 	}
 
@@ -123,17 +136,22 @@ func (s *Service) pollCurrentlyPlaying() {
 		s.adjustInterval(false, false)
 	}
 
-	// Reset error count on successful poll
+	// Reset error and no-playback counts on successful poll
 	s.consecutiveErrors = 0
+	s.consecutiveNoPlay = 0
 }
 
 // fetchAndSetLyrics queries the lyrics service and updates the overlay
-func (s *Service) fetchAndSetLyrics(track *overlay.TrackInfo) {
+func (s *Service) fetchAndSetLyrics(ctx context.Context, track *overlay.TrackInfo) {
 	artist := ""
 	if len(track.Artists) > 0 {
 		artist = track.Artists[0]
 	}
-	lyrics, err := s.lyrics.GetLyrics(track.ID, artist, track.Name)
+	lyrics, err := s.lyrics.GetLyrics(ctx, track.ID, artist, track.Name)
+	// If context was cancelled (song changed), don't update overlay
+	if ctx.Err() != nil {
+		return
+	}
 	if err != nil || lyrics == nil {
 		// Clear lyrics if not found to avoid stale display
 		s.overlay.SetCurrentLyrics(nil)
@@ -191,8 +209,14 @@ func (s *Service) handleRateLimit(err *spotify.Error) {
 
 // handleNoPlayback handles when there's no currently playing content
 func (s *Service) handleNoPlayback() {
-	s.overlay.SetCurrentTrack(nil)
+	s.consecutiveNoPlay++
 	s.adjustInterval(false, true)
+
+	// Only clear the track after several consecutive no-playback responses
+	// to avoid flickering from transient API issues
+	if s.consecutiveNoPlay >= 3 {
+		s.overlay.SetCurrentTrack(nil)
+	}
 }
 
 // adjustInterval adjusts the polling interval based on current state

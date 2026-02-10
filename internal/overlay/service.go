@@ -15,6 +15,7 @@ type Service struct {
 	currentLyrics *LyricsData
 	isVisible     bool
 	lastUpdate    time.Time
+	onUpdate      func(*DisplayInfo) // Push callback for UI updates
 }
 
 // defaultSyncLeadMs is the default offset if not configured.
@@ -67,9 +68,16 @@ func (s *Service) GetCurrentTrack() *TrackInfo {
 // SetCurrentTrack updates the current track information
 func (s *Service) SetCurrentTrack(track *TrackInfo) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.currentTrack = track
 	s.lastUpdate = time.Now()
+	cb := s.onUpdate
+	s.mu.Unlock()
+
+	// Push update to frontend via callback (outside lock)
+	if cb != nil {
+		info := s.GetDisplayInfo()
+		go cb(info)
+	}
 }
 
 // GetCurrentLyrics returns the current lyrics
@@ -82,8 +90,22 @@ func (s *Service) GetCurrentLyrics() *LyricsData {
 // SetCurrentLyrics updates the current lyrics
 func (s *Service) SetCurrentLyrics(lyrics *LyricsData) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.currentLyrics = lyrics
+	cb := s.onUpdate
+	s.mu.Unlock()
+
+	// Push update to frontend via callback (outside lock)
+	if cb != nil {
+		info := s.GetDisplayInfo()
+		go cb(info)
+	}
+}
+
+// SetOnUpdate registers a callback that fires when track or lyrics change
+func (s *Service) SetOnUpdate(fn func(*DisplayInfo)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onUpdate = fn
 }
 
 // GetDisplayInfo returns the current lyrics lines to display

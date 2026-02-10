@@ -8,11 +8,11 @@ import (
 func TestNew_Defaults(t *testing.T) {
 	svc := New(nil, nil, nil)
 
-	if svc.baseInterval != 5*time.Second {
-		t.Errorf("Expected base interval 5s, got %v", svc.baseInterval)
+	if svc.baseInterval != 2*time.Second {
+		t.Errorf("Expected base interval 2s, got %v", svc.baseInterval)
 	}
-	if svc.currentInterval != 5*time.Second {
-		t.Errorf("Expected current interval 5s, got %v", svc.currentInterval)
+	if svc.currentInterval != 2*time.Second {
+		t.Errorf("Expected current interval 2s, got %v", svc.currentInterval)
 	}
 	if svc.maxInterval != 30*time.Second {
 		t.Errorf("Expected max interval 30s, got %v", svc.maxInterval)

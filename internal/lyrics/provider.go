@@ -1,6 +1,7 @@
 package lyrics
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"lyrics-overlay/internal/cache"
@@ -18,7 +20,7 @@ import (
 
 // LyricsProvider defines the interface for lyrics sources
 type LyricsProvider interface {
-	SearchLyrics(artist, title string) (*overlay.LyricsData, error)
+	SearchLyrics(ctx context.Context, artist, title string) (*overlay.LyricsData, error)
 	GetName() string
 }
 
@@ -35,7 +37,7 @@ func New(cacheSvc *cache.Service) *Service {
 		providers: make([]LyricsProvider, 0),
 		cache:     cacheSvc,
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 10 * time.Second,
 		},
 	}
 
@@ -56,7 +58,7 @@ func (s *Service) AddProvider(provider LyricsProvider) {
 }
 
 // GetLyrics fetches lyrics for a track, checking cache first
-func (s *Service) GetLyrics(trackID, artist, title string) (*overlay.LyricsData, error) {
+func (s *Service) GetLyrics(ctx context.Context, trackID, artist, title string) (*overlay.LyricsData, error) {
 	// Check cache first by track ID
 	if lyrics := s.cache.GetByTrackID(trackID); lyrics != nil {
 		// Don't accept demo/info cache as final result
@@ -79,11 +81,22 @@ func (s *Service) GetLyrics(trackID, artist, title string) (*overlay.LyricsData,
 		}
 	}
 
+	// Check for cancellation before hitting providers
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// No cache hit, fetch from providers
 	for _, provider := range s.providers {
 		log.Printf("Lyrics: trying provider %s for %s - %s", provider.GetName(), artist, title)
-		lyrics, err := provider.SearchLyrics(artist, title)
+		lyrics, err := provider.SearchLyrics(ctx, artist, title)
 		if err != nil {
+			// If context was cancelled, bail out immediately
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
 			log.Printf("Lyrics: provider %s error: %v", provider.GetName(), err)
 			continue // Try next provider
 		}
@@ -260,13 +273,22 @@ func (l *LRCLibProvider) GetName() string {
 }
 
 // doRequestWithRetry performs an HTTP request with one retry on failure
-func (l *LRCLibProvider) doRequestWithRetry(req *http.Request) (*http.Response, error) {
+func (l *LRCLibProvider) doRequestWithRetry(ctx context.Context, req *http.Request) (*http.Response, error) {
+	req = req.WithContext(ctx)
 	resp, err := l.client.Do(req)
 	if err != nil {
+		// If context was cancelled, don't retry
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		// Wait a bit and retry once
-		time.Sleep(1 * time.Second)
+		select {
+		case <-time.After(200 * time.Millisecond):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 		// Clone the request for retry
-		retryReq, cloneErr := http.NewRequest(req.Method, req.URL.String(), nil)
+		retryReq, cloneErr := http.NewRequestWithContext(ctx, req.Method, req.URL.String(), nil)
 		if cloneErr != nil {
 			return nil, err // Return original error
 		}
@@ -290,26 +312,65 @@ type lrcLibTrack struct {
 	SyncedLyrics string  `json:"syncedLyrics"`
 }
 
-// SearchLyrics queries LRCLIB for lyrics
-func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData, error) {
-	// First, try direct get endpoint for an exact match
-	if track := l.tryGet(artist, title); track != nil {
-		if data := l.trackToLyricsData(track); data != nil {
-			return data, nil
-		}
+// SearchLyrics queries LRCLIB for lyrics, running exact-get and search in parallel
+func (l *LRCLibProvider) SearchLyrics(ctx context.Context, artist, title string) (*overlay.LyricsData, error) {
+	// Run tryGet (exact match) and search (fuzzy) in parallel
+	type getResult struct {
+		data *overlay.LyricsData
+	}
+	type searchResult struct {
+		tracks []lrcLibTrack
+		err    error
 	}
 
-	// Fallback to search endpoint
-	results, err := l.search(artist, title)
-	if err != nil {
-		return nil, err
+	var wg sync.WaitGroup
+	getCh := make(chan getResult, 1)
+	searchCh := make(chan searchResult, 1)
+
+	// Exact match goroutine
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if track := l.tryGet(ctx, artist, title); track != nil {
+			if data := l.trackToLyricsData(track); data != nil {
+				getCh <- getResult{data: data}
+				return
+			}
+		}
+		getCh <- getResult{}
+	}()
+
+	// Search goroutine
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		results, err := l.search(ctx, artist, title)
+		searchCh <- searchResult{tracks: results, err: err}
+	}()
+
+	// Wait for exact match first — if found, use it immediately
+	getRes := <-getCh
+	if getRes.data != nil {
+		return getRes.data, nil
+	}
+
+	// Exact match failed, wait for search results
+	searchRes := <-searchCh
+	results := searchRes.tracks
+
+	// If search failed, check context
+	if searchRes.err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 	}
 
 	// If empty, try query fallback
 	if len(results) == 0 {
 		q := strings.TrimSpace(fmt.Sprintf("%s %s", title, artist))
 		if q != "" {
-			results, err = l.searchByQuery(q)
+			var err error
+			results, err = l.searchByQuery(ctx, q)
 			if err != nil {
 				return nil, err
 			}
@@ -326,7 +387,7 @@ func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData
 	}
 
 	// Important: LRCLIB search results may not include lyrics; fetch by ID
-	full, err := l.getByID(best.ID)
+	full, err := l.getByID(ctx, best.ID)
 	if err == nil && full != nil {
 		if data := l.trackToLyricsData(full); data != nil {
 			return data, nil
@@ -341,16 +402,14 @@ func (l *LRCLibProvider) SearchLyrics(artist, title string) (*overlay.LyricsData
 	return data, nil
 }
 
-func (l *LRCLibProvider) tryGet(artist, title string) *lrcLibTrack {
+func (l *LRCLibProvider) tryGet(ctx context.Context, artist, title string) *lrcLibTrack {
 	endpoint := fmt.Sprintf("%s/get?track_name=%s&artist_name=%s", l.baseURL, url.QueryEscape(title), url.QueryEscape(artist))
-	// Note: duration/album params can be added if available from caller
-	// e.g., &album_name=...&duration=...
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil
 	}
 	req.Header.Set("Accept", "application/json")
-	resp, err := l.doRequestWithRetry(req)
+	resp, err := l.doRequestWithRetry(ctx, req)
 	if err != nil {
 		return nil
 	}
@@ -372,15 +431,14 @@ func (l *LRCLibProvider) tryGet(artist, title string) *lrcLibTrack {
 	return &track
 }
 
-func (l *LRCLibProvider) search(artist, title string) ([]lrcLibTrack, error) {
+func (l *LRCLibProvider) search(ctx context.Context, artist, title string) ([]lrcLibTrack, error) {
 	endpoint := fmt.Sprintf("%s/search?track_name=%s&artist_name=%s", l.baseURL, url.QueryEscape(title), url.QueryEscape(artist))
-	// Note: duration/album params can be added if available from caller
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	resp, err := l.doRequestWithRetry(req)
+	resp, err := l.doRequestWithRetry(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -399,15 +457,15 @@ func (l *LRCLibProvider) search(artist, title string) ([]lrcLibTrack, error) {
 	return results, nil
 }
 
-func (l *LRCLibProvider) searchByQuery(query string) ([]lrcLibTrack, error) {
+func (l *LRCLibProvider) searchByQuery(ctx context.Context, query string) ([]lrcLibTrack, error) {
 	endpoint := fmt.Sprintf("%s/search?q=%s", l.baseURL, url.QueryEscape(query))
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "SpotLy/1.0")
-	resp, err := l.doRequestWithRetry(req)
+	resp, err := l.doRequestWithRetry(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -552,10 +610,10 @@ func atoiSafe(s string) int {
 }
 
 // getByID fetches a single track with lyrics by LRCLIB ID
-func (l *LRCLibProvider) getByID(id int) (*lrcLibTrack, error) {
+func (l *LRCLibProvider) getByID(ctx context.Context, id int) (*lrcLibTrack, error) {
 	// Try REST style first: /get/{id}
 	endpoint := fmt.Sprintf("%s/get/%d", l.baseURL, id)
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -575,7 +633,7 @@ func (l *LRCLibProvider) getByID(id int) (*lrcLibTrack, error) {
 	}
 	// Fallback to query param style: /get?id=123
 	endpoint = fmt.Sprintf("%s/get?id=%d", l.baseURL, id)
-	req, err = http.NewRequest("GET", endpoint, nil)
+	req, err = http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +672,7 @@ func (d *DemoProvider) GetName() string {
 }
 
 // SearchLyrics provides fallback when no other provider works
-func (d *DemoProvider) SearchLyrics(artist, title string) (*overlay.LyricsData, error) {
+func (d *DemoProvider) SearchLyrics(_ context.Context, artist, title string) (*overlay.LyricsData, error) {
 	// Clear message that lyrics aren't available
 	lyrics := &overlay.LyricsData{
 		Source:    "Unavailable",

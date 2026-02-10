@@ -96,6 +96,11 @@ func (a *App) OnStartup(ctx context.Context) {
 		}
 	}
 
+	// Wire up push-based UI updates via Wails events
+	overlaySvc.SetOnUpdate(func(info *overlay.DisplayInfo) {
+		runtime.EventsEmit(ctx, "displayUpdate", info)
+	})
+
 	// Start background monitor to toggle click-through during games (e.g., VALORANT)
 	a.startClickThroughMonitor()
 }
@@ -307,7 +312,7 @@ func (a *App) RefreshNow() string {
 	// Try to fetch lyrics if we have the lyrics service
 	if a.lyrics != nil {
 		go func() {
-			lyrics, err := a.lyrics.GetLyrics(track.ID, track.Artists[0], track.Name)
+			lyrics, err := a.lyrics.GetLyrics(context.Background(), track.ID, track.Artists[0], track.Name)
 			if err == nil && lyrics != nil {
 				a.overlay.SetCurrentLyrics(lyrics)
 			} else {

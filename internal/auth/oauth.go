@@ -134,8 +134,11 @@ func (s *Service) GetClient() *spotify.Client {
 	cfg := s.config.Get()
 	if time.Now().Unix() >= cfg.Auth.ExpiresAt-300 { // Refresh 5 minutes before expiry
 		if err := s.refreshToken(); err != nil {
-			s.clearTokens()
-			return nil
+			// Don't clear tokens on transient refresh failures —
+			// return the existing client and let the API call determine
+			// if the token is truly invalid. This avoids permanently
+			// losing auth state due to a network blip.
+			fmt.Printf("Token refresh failed (will retry): %v\n", err)
 		}
 	}
 
