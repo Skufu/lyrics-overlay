@@ -1,6 +1,7 @@
 # SpotLy
 
 <p>
+  <a href="https://github.com/Skufu/lyrics-overlay/actions/workflows/ci.yml"><img src="https://github.com/Skufu/lyrics-overlay/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/Skufu/lyrics-overlay/releases"><img src="https://img.shields.io/github/release/Skufu/lyrics-overlay.svg" alt="Latest Release"></a>
   <a href="https://github.com/Skufu/lyrics-overlay/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
   <a href="https://goreportcard.com/report/github.com/Skufu/lyrics-overlay"><img src="https://goreportcard.com/badge/github.com/Skufu/lyrics-overlay" alt="Go Report Card"></a>
