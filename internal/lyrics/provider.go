@@ -259,6 +259,26 @@ func (l *LRCLibProvider) GetName() string {
 	return "LRCLIB"
 }
 
+// doRequestWithRetry performs an HTTP request with one retry on failure
+func (l *LRCLibProvider) doRequestWithRetry(req *http.Request) (*http.Response, error) {
+	resp, err := l.client.Do(req)
+	if err != nil {
+		// Wait a bit and retry once
+		time.Sleep(1 * time.Second)
+		// Clone the request for retry
+		retryReq, cloneErr := http.NewRequest(req.Method, req.URL.String(), nil)
+		if cloneErr != nil {
+			return nil, err // Return original error
+		}
+		retryReq.Header = req.Header
+		resp, err = l.client.Do(retryReq)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return resp, nil
+}
+
 // lrcLibTrack is the structure returned by LRCLIB
 type lrcLibTrack struct {
 	ID           int     `json:"id"`
@@ -330,7 +350,7 @@ func (l *LRCLibProvider) tryGet(artist, title string) *lrcLibTrack {
 		return nil
 	}
 	req.Header.Set("Accept", "application/json")
-	resp, err := l.client.Do(req)
+	resp, err := l.doRequestWithRetry(req)
 	if err != nil {
 		return nil
 	}
@@ -360,7 +380,7 @@ func (l *LRCLibProvider) search(artist, title string) ([]lrcLibTrack, error) {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	resp, err := l.client.Do(req)
+	resp, err := l.doRequestWithRetry(req)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +407,7 @@ func (l *LRCLibProvider) searchByQuery(query string) ([]lrcLibTrack, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "SpotLy/1.0")
-	resp, err := l.client.Do(req)
+	resp, err := l.doRequestWithRetry(req)
 	if err != nil {
 		return nil, err
 	}
@@ -595,16 +615,16 @@ func (d *DemoProvider) GetName() string {
 
 // SearchLyrics provides fallback when no other provider works
 func (d *DemoProvider) SearchLyrics(artist, title string) (*overlay.LyricsData, error) {
-	// Only provide basic track info, not full lyrics
+	// Clear message that lyrics aren't available
 	lyrics := &overlay.LyricsData{
-		Source:    "Info",
+		Source:    "Unavailable",
 		IsSynced:  false,
 		FetchedAt: time.Now(),
 		Lines: []overlay.LyricsLine{
-			{Text: fmt.Sprintf("🎵 %s", title), Timestamp: 0},
-			{Text: fmt.Sprintf("by %s", artist), Timestamp: 2000},
+			{Text: "No lyrics found", Timestamp: 0},
+			{Text: fmt.Sprintf("for \"%s\"", title), Timestamp: 2000},
 			{Text: "", Timestamp: 4000},
-			{Text: "♪ Playing on Spotify ♪", Timestamp: 6000},
+			{Text: "Try another song or check LRCLIB", Timestamp: 6000},
 		},
 	}
 

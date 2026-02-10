@@ -91,11 +91,20 @@ func (s *Service) GetDisplayInfo() *DisplayInfo {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	if s.currentTrack == nil || s.currentLyrics == nil {
+	if s.currentTrack == nil {
 		return &DisplayInfo{
 			CurrentLine: "No track playing",
 			NextLine:    "",
 			IsPlaying:   false,
+		}
+	}
+
+	if s.currentLyrics == nil {
+		return &DisplayInfo{
+			CurrentLine: "Fetching lyrics...",
+			NextLine:    "Please wait",
+			IsPlaying:   s.currentTrack.IsPlaying,
+			IsLoading:   true,
 		}
 	}
 
@@ -217,6 +226,7 @@ type DisplayInfo struct {
 	LineDuration  int64  `json:"line_duration_ms"`   // Duration of current line in ms
 	LineProgress  int64  `json:"line_progress_ms"`   // Progress into current line in ms
 	LineStartTime int64  `json:"line_start_time_ms"` // Timestamp when current line started
+	IsLoading     bool   `json:"is_loading"`
 }
 
 // ToggleVisibility toggles the overlay visibility

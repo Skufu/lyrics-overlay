@@ -80,8 +80,8 @@ type Service struct {
 
 | Setting | Default |
 |---------|---------|
-| `port` | `8080` |
-| `redirect_uri` | `http://127.0.0.1:8080/callback` |
+| `port` | `58432` |
+| `redirect_uri` | `http://127.0.0.1:58432/callback` |
 | `overlay.x` | `100` |
 | `overlay.y` | `100` |
 | `overlay.width` | `600` |
@@ -132,8 +132,8 @@ func (s *Service) UpdateAuth(auth AuthConfig) error
 {
   "spotify_client_id": "your_client_id_here",
   "spotify_client_secret": "your_client_secret_here",
-  "redirect_uri": "http://127.0.0.1:8080/callback",
-  "port": 8080,
+  "redirect_uri": "http://127.0.0.1:58432/callback",
+  "port": 58432,
   "overlay": {
     "x": 100,
     "y": 100,

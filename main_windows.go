@@ -108,7 +108,7 @@ func (a *App) startClickThroughMonitor() {
 	a.stopClickMonitor = make(chan struct{})
 
 	// List of games that require click-through (lowercase)
-	gamesRequiringClickThrough := []string{
+	builtinGames := []string{
 		"valorant",
 		"league of legends",
 		"cs2",
@@ -116,26 +116,73 @@ func (a *App) startClickThroughMonitor() {
 		"dota 2",
 		"overwatch",
 		"apex legends",
+		"fortnite",
+		"warzone",
+		"call of duty",
+		"genshin impact",
+		"minecraft",
+		"roblox",
 	}
 
 	go func() {
-		ticker := time.NewTicker(3 * time.Second)
+		// Poll faster (100ms) for hotkey, process window check every 30 ticks (3s)
+		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
+		ticks := 0
+		hotkeyDebounce := false
+
+		user32 := windows.NewLazyDLL("user32.dll")
+		procGetAsyncKeyState := user32.NewProc("GetAsyncKeyState")
 
 		for {
 			select {
 			case <-ticker.C:
+				ticks++
+
+				// Check hotkey: Alt + Shift + S
+				// VK_MENU (Alt) = 0x12, VK_SHIFT = 0x10, S = 0x53
+				alt, _, _ := procGetAsyncKeyState.Call(0x12)
+				shift, _, _ := procGetAsyncKeyState.Call(0x10)
+				sKey, _, _ := procGetAsyncKeyState.Call(0x53)
+
+				// specific bit needed for "currently down" state is 0x8000
+				isPressed := (alt&0x8000 != 0) && (shift&0x8000 != 0) && (sKey&0x8000 != 0)
+
+				if isPressed {
+					if !hotkeyDebounce {
+						a.ToggleVisibility()
+						hotkeyDebounce = true
+					}
+				} else {
+					hotkeyDebounce = false
+				}
+
+				// Only check active window every 3 seconds (30 ticks)
+				if ticks%30 != 0 {
+					continue
+				}
+
 				active, err := a.GetActiveWindow()
 				if err != nil {
+					// Don't fail completely on one bad check
 					continue
 				}
 
 				lower := strings.ToLower(active)
 				isInGame := false
 
+				// Build game list: built-in + custom from config
+				gamesRequiringClickThrough := builtinGames
+				if a.config != nil {
+					customGames := a.config.Get().Overlay.CustomGames
+					if len(customGames) > 0 {
+						gamesRequiringClickThrough = append(gamesRequiringClickThrough, customGames...)
+					}
+				}
+
 				// Check if any game in the list is the active window
 				for _, game := range gamesRequiringClickThrough {
-					if strings.Contains(lower, game) {
+					if strings.Contains(lower, strings.ToLower(game)) {
 						isInGame = true
 						break
 					}
@@ -158,4 +205,5 @@ func (a *App) startClickThroughMonitor() {
 			}
 		}
 	}()
+
 }

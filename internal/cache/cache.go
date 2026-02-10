@@ -54,16 +54,16 @@ func (s *Service) GetByTrackID(trackID string) *overlay.LyricsData {
 	}
 
 	// Check if entry is still valid (24 hours)
+	// Note: We don't remove stale entries here to avoid write operations under read lock.
+	// Stale entries will be evicted naturally by LRU or overwritten on next Set.
 	if time.Since(entry.timestamp) > 24*time.Hour {
-		// Entry is stale, remove it
-		s.removeEntryUnsafe(entry)
 		return nil
 	}
 
-	// Move to front of LRU list
-	if elem, exists := s.trackToElem[trackID]; exists {
-		s.lruList.MoveToFront(elem)
-	}
+	// Note: MoveToFront is a write operation, but container/list is not thread-safe.
+	// For true thread safety, we'd need a write lock here. However, the LRU ordering
+	// is a performance optimization, not a correctness requirement. Skipping it under
+	// read lock is acceptable - entries may be evicted slightly earlier than optimal.
 
 	return entry.lyrics
 }
@@ -79,16 +79,16 @@ func (s *Service) GetByKey(cacheKey string) *overlay.LyricsData {
 	}
 
 	// Check if entry is still valid (24 hours)
+	// Note: We don't remove stale entries here to avoid write operations under read lock.
+	// Stale entries will be evicted naturally by LRU or overwritten on next Set.
 	if time.Since(entry.timestamp) > 24*time.Hour {
-		// Entry is stale, remove it
-		s.removeEntryUnsafe(entry)
 		return nil
 	}
 
-	// Move to front of LRU list
-	if elem, exists := s.keyToElem[cacheKey]; exists {
-		s.lruList.MoveToFront(elem)
-	}
+	// Note: MoveToFront is a write operation, but container/list is not thread-safe.
+	// For true thread safety, we'd need a write lock here. However, the LRU ordering
+	// is a performance optimization, not a correctness requirement. Skipping it under
+	// read lock is acceptable - entries may be evicted slightly earlier than optimal.
 
 	return entry.lyrics
 }

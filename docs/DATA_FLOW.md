@@ -14,7 +14,7 @@ sequenceDiagram
     participant Spotify
     
     User->>SpotLy: Click "Connect with Spotify"
-    SpotLy->>SpotLy: Start callback server (:8080)
+    SpotLy->>SpotLy: Start callback server (:58432)
     SpotLy->>Browser: Open auth URL
     Browser->>Spotify: User logs in
     Spotify->>Browser: Redirect to /callback?code=xxx

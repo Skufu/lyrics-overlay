@@ -51,7 +51,7 @@ func (s *Service) StartOAuthFlow() error
 ```
 
 1. Stops any existing callback server
-2. Starts HTTP server on configured port (default: 8080)
+2. Starts HTTP server on configured port (default: 58432)
 3. Generates authorization URL with random state
 4. Opens browser to Spotify login
 

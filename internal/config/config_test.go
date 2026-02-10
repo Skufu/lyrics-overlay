@@ -28,11 +28,11 @@ func TestLoadConfig_Default(t *testing.T) {
 	}
 
 	cfg := service.Get()
-	if cfg.Port != 8080 {
-		t.Errorf("Default port = %d; want 8080", cfg.Port)
+	if cfg.Port != 58432 {
+		t.Errorf("Default port = %d; want 58432", cfg.Port)
 	}
 
-	if cfg.RedirectURI != "http://127.0.0.1:8080/callback" {
+	if cfg.RedirectURI != "http://127.0.0.1:58432/callback" {
 		t.Errorf("Unexpected redirect URI: %s", cfg.RedirectURI)
 	}
 }
@@ -179,11 +179,11 @@ func TestConfig_UpdateAuth(t *testing.T) {
 func TestGetDefaultConfig(t *testing.T) {
 	cfg := getDefaultConfig()
 
-	if cfg.Port != 8080 {
-		t.Errorf("Expected default port 8080, got %d", cfg.Port)
+	if cfg.Port != 58432 {
+		t.Errorf("Expected default port 58432, got %d", cfg.Port)
 	}
 
-	if cfg.RedirectURI != "http://127.0.0.1:8080/callback" {
+	if cfg.RedirectURI != "http://127.0.0.1:58432/callback" {
 		t.Errorf("Expected default redirect URI, got %s", cfg.RedirectURI)
 	}
 

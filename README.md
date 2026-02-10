@@ -65,7 +65,7 @@ This is a quick walkthrough on getting SpotLy running.
 Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and create a new app. Under **Redirect URIs**, add:
 
 ```
-http://127.0.0.1:8080/callback
+http://127.0.0.1:58432/callback
 ```
 
 Copy your **Client ID** and **Client Secret**.
@@ -114,8 +114,8 @@ Config is stored at `~/.spotly/config.json` (Windows: `C:\Users\<YOU>\.spotly\co
 {
   "spotify_client_id": "your_client_id",
   "spotify_client_secret": "your_client_secret",
-  "redirect_uri": "http://127.0.0.1:8080/callback",
-  "port": 8080,
+  "redirect_uri": "http://127.0.0.1:58432/callback",
+  "port": 58432,
   "overlay": {
     "x": 100,
     "y": 100,
@@ -160,8 +160,8 @@ spotly/
 
 ### OAuth callback fails
 
-- Redirect URI must match exactly: `http://127.0.0.1:8080/callback`
-- Ensure port 8080 is available
+- Redirect URI must match exactly: `http://127.0.0.1:58432/callback`
+- Ensure port 58432 is available
 - Try disabling firewall temporarily
 
 ### No lyrics found

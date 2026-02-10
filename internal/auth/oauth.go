@@ -225,15 +225,63 @@ func (s *Service) handleCallback(w http.ResponseWriter, r *http.Request) {
 <head>
     <title>SpotLy - Authentication Successful</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #1db954; color: white; }
-        h1 { margin-bottom: 20px; }
-        p { font-size: 18px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .card {
+            text-align: center;
+            padding: 48px;
+            background: linear-gradient(135deg, rgba(29, 185, 84, 0.08) 0%%, rgba(29, 185, 84, 0.02) 100%%);
+            border: 1px solid rgba(29, 185, 84, 0.2);
+            border-radius: 20px;
+            max-width: 400px;
+            animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .check {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #1db954, #1ed760);
+            border-radius: 50%%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(29, 185, 84, 0.3);
+            animation: pop 0.4s ease 0.2s both;
+        }
+        @keyframes pop {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        p { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.6; }
+        .countdown { margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.3); }
     </style>
 </head>
 <body>
-    <h1>🎵 Authentication Successful!</h1>
-    <p>You can now close this window and return to SpotLy.</p>
-    <script>setTimeout(() => window.close(), 3000);</script>
+    <div class="card">
+        <div class="check">✓</div>
+        <h1>Connected!</h1>
+        <p>SpotLy is now linked to your Spotify account.<br>You can close this window and return to the app.</p>
+        <div class="countdown" id="cd">Closing in 3s...</div>
+    </div>
+    <script>
+        let t=3;
+        const el=document.getElementById('cd');
+        setInterval(()=>{t--;if(t<=0){window.close();}else{el.textContent='Closing in '+t+'s...';}},1000);
+    </script>
 </body>
 </html>`)
 }

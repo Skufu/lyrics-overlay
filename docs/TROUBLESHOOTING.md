@@ -29,14 +29,14 @@ Common issues and solutions for SpotLy.
 **Solution:**
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Edit your app settings
-3. Ensure redirect URI is exactly: `http://127.0.0.1:8080/callback`
+3. Ensure redirect URI is exactly: `http://127.0.0.1:58432/callback`
 4. Save changes
 
 ---
 
-### Port 8080 already in use
+### Port 58432 already in use
 
-**Cause:** Another application is using port 8080.
+**Cause:** Another application is using port 58432.
 
 **Solution:**
 1. Find and stop the conflicting application

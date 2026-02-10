@@ -24,17 +24,19 @@ type Config struct {
 
 // OverlayConfig holds overlay window settings
 type OverlayConfig struct {
-	X            int     `json:"x"`
-	Y            int     `json:"y"`
-	Width        int     `json:"width"`
-	Height       int     `json:"height"`
-	Opacity      float64 `json:"opacity"`
-	FontSize     int     `json:"font_size"`
-	Visible      bool    `json:"visible"`
-	Locked       bool    `json:"locked"`
-	Position     string  `json:"position"` // "top-left", "top-right", "bottom-left", "bottom-right"
-	ResizeLocked bool    `json:"resize_locked"`
-	SyncOffset   int64   `json:"sync_offset"` // Lyrics timing offset in ms (positive = earlier)
+	X              int      `json:"x"`
+	Y              int      `json:"y"`
+	Width          int      `json:"width"`
+	Height         int      `json:"height"`
+	Opacity        float64  `json:"opacity"`
+	FontSize       int      `json:"font_size"`
+	Visible        bool     `json:"visible"`
+	Locked         bool     `json:"locked"`
+	Position       string   `json:"position"` // "top-left", "top-right", "bottom-left", "bottom-right"
+	ResizeLocked   bool     `json:"resize_locked"`
+	SyncOffset     int64    `json:"sync_offset"` // Lyrics timing offset in ms (positive = earlier)
+	KaraokeEnabled bool     `json:"karaoke_enabled"`
+	CustomGames    []string `json:"custom_games,omitempty"` // Additional games for click-through detection
 }
 
 // AuthConfig holds OAuth tokens
@@ -87,20 +89,22 @@ func New() (*Service, error) {
 // getDefaultConfig returns the default configuration
 func getDefaultConfig() *Config {
 	return &Config{
-		RedirectURI: "http://127.0.0.1:8080/callback",
-		Port:        8080,
+		RedirectURI: "http://127.0.0.1:58432/callback",
+		Port:        58432,
 		Overlay: OverlayConfig{
-			X:            100,
-			Y:            100,
-			Width:        600,
-			Height:       120,
-			Opacity:      0.9,
-			FontSize:     16,
-			Visible:      true,
-			Locked:       false,
-			Position:     "bottom-left",
-			ResizeLocked: false,
-			SyncOffset:   350,
+			X:              100,
+			Y:              100,
+			Width:          600,
+			Height:         120,
+			Opacity:        0.9,
+			FontSize:       16,
+			Visible:        true,
+			Locked:         false,
+			Position:       "bottom-left",
+			ResizeLocked:   false,
+			SyncOffset:     350,
+			KaraokeEnabled: true,
+			CustomGames:    []string{},
 		},
 	}
 }

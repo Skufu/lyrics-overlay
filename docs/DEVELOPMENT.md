@@ -42,7 +42,7 @@ wails build
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Click "Create App"
 3. Fill in app name and description
-4. Add Redirect URI: `http://127.0.0.1:8080/callback`
+4. Add Redirect URI: `http://127.0.0.1:58432/callback`
 5. Copy **Client ID** and **Client Secret**
 
 ---

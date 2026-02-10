@@ -25,7 +25,7 @@ Complete reference for SpotLy's configuration file.
   "spotify_client_id": "string",
   "spotify_client_secret": "string",
   "redirect_uri": "string",
-  "port": 8080,
+  "port": 58432,
   "overlay": {
     "x": 100,
     "y": 100,
@@ -63,7 +63,7 @@ Complete reference for SpotLy's configuration file.
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app
-3. Add redirect URI: `http://127.0.0.1:8080/callback`
+3. Add redirect URI: `http://127.0.0.1:58432/callback`
 4. Copy Client ID and Client Secret
 
 ---
@@ -83,6 +83,8 @@ Complete reference for SpotLy's configuration file.
 | `position` | string | "bottom-left" | Reserved for presets |
 | `resize_locked` | bool | false | Prevent resizing |
 | `sync_offset` | int | 350 | Lyrics timing offset (ms) |
+| `karaoke_enabled` | bool | true | Progressive text highlighting |
+| `custom_games` | []string | [] | Additional games for click-through |
 
 ### Sync Offset
 
@@ -114,7 +116,7 @@ Tokens are automatically refreshed 5 minutes before expiration.
 {
   "spotify_client_id": "abc123def456...",
   "spotify_client_secret": "xyz789...",
-  "redirect_uri": "http://127.0.0.1:8080/callback",
+  "redirect_uri": "http://127.0.0.1:58432/callback",
   "port": 8080,
   "overlay": {
     "x": 50,

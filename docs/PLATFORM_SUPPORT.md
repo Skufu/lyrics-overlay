@@ -26,7 +26,7 @@ When a supported game is focused, the overlay becomes click-through (mouse event
 
 ### Supported Games
 
-Click-through auto-activates for these games:
+Click-through auto-activates for these built-in games:
 
 | Game | Window Title Match |
 |------|-------------------|
@@ -36,6 +36,12 @@ Click-through auto-activates for these games:
 | Dota 2 | `dota 2` |
 | Overwatch | `overwatch` |
 | Apex Legends | `apex legends` |
+| Fortnite | `fortnite` |
+| Warzone | `warzone` |
+| Call of Duty | `call of duty` |
+| Genshin Impact | `genshin impact` |
+| Minecraft | `minecraft` |
+| Roblox | `roblox` |
 
 Detection is case-insensitive and matches partial window titles.
 
@@ -86,28 +92,28 @@ func (a *App) startClickThroughMonitor() {
 
 ---
 
-## Adding Game Support
+## Adding Custom Games
 
-To add a new game to click-through detection:
+You can add your own games via `config.json` without rebuilding:
 
-1. Edit `main_windows.go`
-2. Add game name to the list:
-
-```go
-gamesRequiringClickThrough := []string{
-    "valorant",
-    "league of legends",
-    // Add new game here
-    "your game name",
+```json
+{
+  "overlay": {
+    "custom_games": [
+      "your game name",
+      "another game"
+    ]
+  }
 }
 ```
 
-3. Use lowercase and partial match (e.g., just "fortnite" not full title)
+Games are matched case-insensitively against window titles.
 
 ---
 
 ## See Also
 
+- [Configuration](CONFIGURATION.md) - custom_games setting
 - [Main Entry](backend/main-entry.md) - Platform code location
 - [Troubleshooting](TROUBLESHOOTING.md#overlay-issues) - Overlay issues
 - [Development](DEVELOPMENT.md) - Building for different platforms

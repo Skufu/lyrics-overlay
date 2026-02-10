@@ -384,6 +384,9 @@ func (a *App) UpdateOverlayConfig(config map[string]interface{}) error {
 	if syncOffset, ok := config["sync_offset"].(float64); ok {
 		current.SyncOffset = int64(syncOffset)
 	}
+	if karaokeEnabled, ok := config["karaoke_enabled"].(bool); ok {
+		current.KaraokeEnabled = karaokeEnabled
+	}
 
 	return a.overlay.UpdateOverlayConfig(current)
 }
@@ -450,8 +453,8 @@ func (a *App) SaveSpotifyCredentials(clientID, clientSecret string) error {
 	cfg := a.config.Get()
 	cfg.SpotifyClientID = clientID
 	cfg.SpotifyClientSecret = clientSecret
-	cfg.RedirectURI = "http://127.0.0.1:8080/callback"
-	cfg.Port = 8080
+	cfg.RedirectURI = "http://127.0.0.1:58432/callback"
+	cfg.Port = 58432
 
 	if err := a.config.Save(); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
@@ -489,6 +492,46 @@ func (a *App) ValidateCredentials(clientID, clientSecret string) error {
 func (a *App) HasCredentials() bool {
 	cfg := a.config.Get()
 	return cfg.SpotifyClientID != "" && cfg.SpotifyClientSecret != ""
+}
+
+// Logout disconnects from Spotify and prepares for re-authentication
+func (a *App) Logout() error {
+	// Stop Spotify polling
+	if a.spotify != nil {
+		a.spotify.Stop()
+	}
+
+	// Clear auth tokens and client
+	if a.auth != nil {
+		a.auth.Logout()
+	}
+
+	// Clear overlay state
+	if a.overlay != nil {
+		a.overlay.SetCurrentTrack(nil)
+		a.overlay.SetCurrentLyrics(nil)
+	}
+
+	// Reinitialize auth service so user can log in again
+	if a.config != nil && a.HasCredentials() {
+		authSvc, err := auth.New(a.config)
+		if err != nil {
+			return fmt.Errorf("failed to reinitialize auth: %w", err)
+		}
+		a.auth = authSvc
+
+		// Reinitialize Spotify service with new auth
+		if a.lyrics != nil {
+			a.spotify = spotify.New(authSvc, a.overlay, a.lyrics)
+		}
+	}
+
+	return nil
+}
+
+// GetVersion returns the application version
+func (a *App) GetVersion() string {
+	return "1.0.0"
 }
 
 func main() {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SpotLy Overlay</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         :root {
             --spotify-green: #1db954;
             --spotify-green-light: #1ed760;
@@ -22,7 +23,7 @@
 
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: transparent;
             color: var(--text-primary);
             overflow: hidden;
@@ -31,13 +32,14 @@
             -webkit-app-region: no-drag;
         }
 
-        /* Custom range slider */
+        /* Custom range slider with filled track */
         input[type="range"] {
             -webkit-appearance: none;
             height: 4px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             border-radius: 2px;
             cursor: pointer;
+            outline: none;
         }
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -46,10 +48,12 @@
             background: var(--spotify-green);
             border-radius: 50%;
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: transform 0.15s ease;
+            box-shadow: 0 2px 6px rgba(29, 185, 84, 0.3);
         }
         input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+            transform: scale(1.3);
+            box-shadow: 0 3px 10px rgba(29, 185, 84, 0.4);
         }
         input[type="range"]::-webkit-slider-thumb:active {
             transform: scale(1.1);
@@ -152,27 +156,93 @@
             animation: slideUpFade 0.2s ease-out 0.02s;
         }
 
-        .status-indicator {
+        .loading-indicator {
             position: absolute;
             top: 10px;
             right: 10px;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--spotify-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+            pointer-events: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Onboarding Modal */
+        .onboarding-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            display: none; /* Flex when active */
+            align-items: center;
+            justify-content: center;
+            -webkit-app-region: no-drag;
+        }
+        .onboarding-card {
+            background: #181818;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .onboarding-steps {
+            text-align: left;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #ddd;
+            line-height: 1.6;
+        }
+        .onboarding-steps li {
+            margin-bottom: 10px;
+            list-style: none;
+            display: flex;
+            gap: 10px;
+        }
+        .step-num {
+            background: var(--spotify-green);
+            color: #000;
+            font-weight: bold;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #ff4444;
-            transition: background 0.3s ease;
-            pointer-events: none;
+            background: #555;
             display: none;
+            z-index: 200;
+            pointer-events: none;
+            transition: background 0.3s ease;
         }
-
-        .status-indicator.playing {
-            background: #44ff44;
+        .status-indicator.connected {
+            background: var(--spotify-green);
+            box-shadow: 0 0 6px rgba(29, 185, 84, 0.5);
             animation: pulse 2s ease-in-out infinite;
         }
-
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(29, 185, 84, 0.5); }
+            50% { opacity: 0.6; box-shadow: 0 0 12px rgba(29, 185, 84, 0.3); }
         }
 
         /* Settings toggle - modern design */
@@ -200,7 +270,7 @@
         .settings-toggle:hover {
             background: rgba(255, 255, 255, 0.15);
             border-color: rgba(255, 255, 255, 0.25);
-            transform: scale(1.05);
+            transform: scale(1.05) rotate(30deg);
         }
 
         .settings-toggle.active {
@@ -388,6 +458,11 @@
             color: white;
             font-weight: 700;
             box-shadow: 0 8px 24px rgba(29, 185, 84, 0.3);
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
         }
 
         .auth-content h2 {
@@ -795,6 +870,15 @@
             text-overflow: ellipsis;
         }
 
+        /* Version display */
+        .version-info {
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.2);
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+
     </style>
 </head>
 <body>
@@ -803,7 +887,9 @@
         <div id="auth-screen" class="auth-modal">
             <div class="auth-content">
                 <button class="auth-close" onclick="window.runtime.Quit()">&times;</button>
-                <div class="auth-icon">S</div>
+                <div class="auth-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                </div>
                 <h2>SpotLy Overlay</h2>
                 <p>Connect your Spotify account to display real-time lyrics while gaming</p>
 
@@ -857,7 +943,7 @@
                             <h3>Add Redirect URI</h3>
                             <p>In your Spotify app settings, add this as a Redirect URI:</p>
                             <div class="copy-box" onclick="copyRedirectUri(this)">
-                                <code>http://127.0.0.1:8080/callback</code>
+                                <code>http://127.0.0.1:58432/callback</code>
                                 <span class="copy-icon">Copy</span>
                             </div>
                             <p class="setup-hint">Click to copy, then paste in Spotify Dashboard → Edit Settings → Redirect URIs</p>
@@ -888,8 +974,39 @@
             </div>
         </div>
 
+        <!-- Onboarding Modal -->
+        <div id="onboarding-modal" class="onboarding-overlay">
+            <div class="onboarding-card">
+                <div class="auth-icon" style="width: 48px; height: 48px; margin-bottom: 15px; font-size: 24px;">🎵</div>
+                <h2 style="color: white; margin-bottom: 10px;">Welcome to SpotLy!</h2>
+                <p style="color: #bbb; margin-bottom: 20px;">Your new lyrics companion for gaming.</p>
+                
+                <ul class="onboarding-steps">
+                    <li>
+                        <span class="step-num">1</span>
+                        <span>Connect your Spotify account</span>
+                    </li>
+                    <li>
+                        <span class="step-num">2</span>
+                        <span>Play a song on Spotify</span>
+                    </li>
+                    <li>
+                        <span class="step-num">3</span>
+                        <span>Lyrics will appear automatically!</span>
+                    </li>
+                    <li>
+                        <span class="step-num">4</span>
+                        <span>Overlay becomes click-through in games</span>
+                    </li>
+                </ul>
+
+                <button class="setup-btn primary" onclick="closeOnboarding()">Get Started</button>
+            </div>
+        </div>
+
         <!-- Main Overlay -->
         <div id="main-overlay" class="overlay-container" style="display: none;">
+            <div id="loadingIndicator" class="loading-indicator"></div>
             <div id="statusIndicator" class="status-indicator"></div>
             <button id="settingsToggle" class="settings-toggle" onclick="toggleSettings()">⚙</button>
 
@@ -906,50 +1023,56 @@
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-label">Appearance</div>
+                    <div class="settings-label">🎨 Appearance</div>
                     <div class="slider-row">
                         <span class="slider-label">Font Size</span>
-                        <input type="range" id="fontsize-slider" min="14" max="32" value="18" oninput="updateFontSize(this.value)">
+                        <input type="range" id="fontsize-slider" min="14" max="32" value="18" oninput="updateFontSize(this.value); updateSliderFill(this)">
                         <span id="fontsize-value" class="slider-value">18px</span>
+                    </div>
+                    <div class="slider-row">
+                        <span class="slider-label">Opacity</span>
+                        <input type="range" id="opacity-slider" min="30" max="100" value="90" oninput="updateOpacity(this.value); updateSliderFill(this)">
+                        <span id="opacity-value" class="slider-value">90%</span>
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-label">Sync Timing</div>
+                    <div class="settings-label">⏱️ Sync Timing</div>
                     <div class="slider-row">
                         <span class="slider-label">Offset</span>
-                        <input type="range" id="sync-slider" min="-500" max="1000" value="350" step="50" oninput="updateSyncOffset(this.value)">
+                        <input type="range" id="sync-slider" min="-500" max="1000" value="350" step="50" oninput="updateSyncOffset(this.value); updateSliderFill(this)">
                         <span id="sync-value" class="slider-value">+350ms</span>
                     </div>
                     <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
-                        Positive shows lyrics earlier, negative shows later
+                        Positive = earlier, negative = later
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-label">Effects</div>
+                    <div class="settings-label">✨ Effects</div>
                     <div class="settings-row">
-                        <button class="control-btn active" onclick="toggleKaraoke()" id="karaokeBtn">Karaoke Mode</button>
+                        <button class="control-btn active" onclick="toggleKaraoke()" id="karaokeBtn">🎤 Karaoke</button>
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-label">Controls</div>
+                    <div class="settings-label">⚡ Controls</div>
                     <div class="settings-row">
-                        <button class="control-btn" onclick="refreshNow()" title="Refresh">Refresh</button>
-                        <button class="control-btn" onclick="toggleLock()" id="lockBtn" title="Lock Position">Lock</button>
-                        <button class="control-btn" onclick="logout()" title="Logout">Logout</button>
-                        <button class="control-btn" onclick="window.runtime.Quit()" title="Quit">Quit</button>
+                        <button class="control-btn" onclick="refreshNow()" title="Refresh">🔄 Refresh</button>
+                        <button class="control-btn" onclick="toggleLock()" id="lockBtn" title="Lock Position">🔒 Lock</button>
+                        <button class="control-btn" onclick="logout()" title="Logout">🚪 Logout</button>
+                        <button class="control-btn" onclick="window.runtime.Quit()" title="Quit">✖ Quit</button>
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-label">Help</div>
+                    <div class="settings-label">📌 Help</div>
                     <div class="settings-row">
-                        <button class="control-btn" onclick="showSetupWizard()" title="Setup Wizard">Setup</button>
-                        <button class="control-btn" onclick="openConfig()" title="Open Config">Config</button>
+                        <button class="control-btn" onclick="showSetupWizard()" title="Setup Wizard">🛠 Setup</button>
+                        <button class="control-btn" onclick="openConfig()" title="Open Config">📂 Config</button>
                     </div>
                 </div>
+                <div class="version-info" id="version-display"></div>
             </div>
         </div>
     </div>
@@ -999,7 +1122,7 @@
 
         // Copy redirect URI to clipboard
         function copyRedirectUri(element) {
-            const uri = 'http://127.0.0.1:8080/callback';
+            const uri = 'http://127.0.0.1:58432/callback';
             navigator.clipboard.writeText(uri).then(() => {
                 element.classList.add('copied');
                 setTimeout(() => element.classList.remove('copied'), 2000);
@@ -1157,7 +1280,26 @@
 
 
 
+        // Check for first-time tutorial
+        function checkOnboarding() {
+            if (!localStorage.getItem('seenTutorial')) {
+                const modal = document.getElementById('onboarding-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                }
+            }
+        }
 
+        function closeOnboarding() {
+            const modal = document.getElementById('onboarding-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                localStorage.setItem('seenTutorial', 'true');
+            }
+        }
+
+        // Initialize onboarding check on load
+        setTimeout(checkOnboarding, 1000);
         // Resize window via Go backend
         async function resizeWindow(width, height) {
             try {
@@ -1202,12 +1344,20 @@
         async function logout() {
             if (confirm('Disconnect from Spotify?')) {
                 try {
-                    // Clear auth and show auth screen
+                    // Call backend logout to clear tokens and reinitialize
+                    await window.go?.main?.App?.Logout?.();
+
+                    // Clear frontend state
                     isAuthenticated = false;
                     if (displayInfoInterval) {
                         clearInterval(displayInfoInterval);
                         displayInfoInterval = null;
                     }
+
+                    // Update status indicator
+                    const indicator = document.getElementById('statusIndicator');
+                    if (indicator) indicator.classList.remove('connected');
+
                     await resizeWindow(WINDOW_WIDTH, 600);
                     showAuthScreen();
                 } catch (e) {
@@ -1363,10 +1513,51 @@
                         const currentEl = document.getElementById('current-line');
                         if (currentEl) currentEl.style.fontSize = cfg.font_size + 'px';
                     }
+                    // Opacity
+                    const opacitySlider = document.getElementById('opacity-slider');
+                    const opacityValue = document.getElementById('opacity-value');
+                    if (opacitySlider && cfg.opacity !== undefined) {
+                        const pct = Math.round(cfg.opacity * 100);
+                        opacitySlider.value = pct;
+                        if (opacityValue) opacityValue.textContent = pct + '%';
+                    }
+                    // Karaoke mode
+                    if (cfg.karaoke_enabled !== undefined) {
+                        karaokeEnabled = cfg.karaoke_enabled;
+                        const karaokeBtn = document.getElementById('karaokeBtn');
+                        const currentEl = document.getElementById('current-line');
+                        if (karaokeBtn) {
+                            karaokeBtn.textContent = karaokeEnabled ? '🎤 Karaoke' : '🎤 Karaoke Off';
+                            karaokeBtn.classList.toggle('active', karaokeEnabled);
+                        }
+                        if (currentEl) {
+                            if (karaokeEnabled) {
+                                currentEl.classList.add('karaoke');
+                            } else {
+                                currentEl.classList.remove('karaoke');
+                            }
+                        }
+                    }
+                    // Update all slider fills
+                    document.querySelectorAll('input[type="range"]').forEach(updateSliderFill);
                 }
             } catch (e) {
                 // Ignore config load errors
             }
+
+            // Show status indicator
+            const indicator = document.getElementById('statusIndicator');
+            if (indicator) {
+                indicator.style.display = 'block';
+                indicator.classList.add('connected');
+            }
+
+            // Load version
+            try {
+                const version = await window.go?.main?.App?.GetVersion?.();
+                const versionEl = document.getElementById('version-display');
+                if (versionEl && version) versionEl.textContent = 'SpotLy v' + version;
+            } catch (e) {}
 
             // Start polling display info
             startDisplayInfoPolling();
@@ -1389,7 +1580,7 @@
                     const info = await window.go.main.App.GetDisplayInfo();
                     const currentEl = document.getElementById('current-line');
                     const nextEl = document.getElementById('next-line');
-                    const indicator = document.getElementById('statusIndicator');
+                    const loadingInd = document.getElementById('loadingIndicator');
                     const lyricsDisplay = document.querySelector('.lyrics-display');
 
                     const newCurrent = info.current_line || 'No track playing';
@@ -1425,9 +1616,13 @@
                         currentEl.classList.remove('karaoke');
                     }
 
-                    // Update playing indicator
-                    if (indicator) {
-                        indicator.classList.toggle('playing', info.is_playing);
+                    // Update loading indicator
+                    if (loadingInd) {
+                        if (info.is_loading) {
+                            loadingInd.style.display = 'block';
+                        } else {
+                            loadingInd.style.display = 'none';
+                        }
                     }
 
                     // Update track info (less frequently)
@@ -1510,12 +1705,12 @@
         }
 
         // Toggle karaoke mode
-        function toggleKaraoke() {
+        async function toggleKaraoke() {
             karaokeEnabled = !karaokeEnabled;
             const btn = document.getElementById('karaokeBtn');
             const currentEl = document.getElementById('current-line');
             if (btn) {
-                btn.textContent = karaokeEnabled ? 'Karaoke Mode' : 'Karaoke Off';
+                btn.textContent = karaokeEnabled ? '🎤 Karaoke' : '🎤 Karaoke Off';
                 btn.classList.toggle('active', karaokeEnabled);
             }
             if (currentEl) {
@@ -1526,9 +1721,22 @@
                     currentEl.style.removeProperty('--karaoke-progress');
                 }
             }
+            // Persist karaoke setting to config
+            try {
+                await window.go?.main?.App?.UpdateOverlayConfig?.({ karaoke_enabled: karaokeEnabled });
+            } catch {}
         }
 
-        // Initialize karaokeEnabled
+        // Slider filled-track helper — paints the left portion green
+        function updateSliderFill(slider) {
+            const min = parseFloat(slider.min) || 0;
+            const max = parseFloat(slider.max) || 100;
+            const val = parseFloat(slider.value) || 0;
+            const pct = ((val - min) / (max - min)) * 100;
+            slider.style.background = `linear-gradient(to right, var(--spotify-green) 0%, var(--spotify-green) ${pct}%, rgba(255,255,255,0.15) ${pct}%, rgba(255,255,255,0.15) 100%)`;
+        }
+
+        // Initialize karaokeEnabled (will be set from config on load)
         let karaokeEnabled = true;
 
 
