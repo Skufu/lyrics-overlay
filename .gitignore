@@ -1,20 +1,24 @@
-# Go build
+# === Go ===
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.work
+go.work.sum
 bin/
-build/
-spotly.exe
 
-# Wails build artifacts
-frontend/wailsjs/
-
-# Local env
+# === General ===
 .env
-.env.*
-
-# OS/editor
+.env.local
+.env.*.local
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 *.log
-
-# Cache
-*.cache
-node_modules/
